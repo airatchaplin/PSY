@@ -1,5 +1,39 @@
 # Деплой PSY на хостинг
 
+## U1Host VDS (рекомендуемый путь)
+
+1. Заказать VDS: [U1Host BILLmanager](https://my.u1host.com/billmgr?startform=vds) — Ubuntu 22.04/24.04, **4 vCPU / 8–16 GB RAM / ≥40 GB SSD**, публичный IP.
+2. SSH: `ssh root@ВАШ_IP`
+3. Установить Docker:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   ```
+4. Клонировать и настроить:
+   ```bash
+   git clone https://github.com/airatchaplin/PSY.git
+   cd PSY
+   cp .env.example .env
+   nano .env   # сложные пароли + URL с IP/доменом
+   ```
+5. В `.env` минимум:
+   ```env
+   APP_PUBLIC_URL=http://ВАШ_IP
+   VITE_API_URL=http://ВАШ_IP:8081
+   PSY_CORS_ORIGINS=http://ВАШ_IP
+   PSY_JWT_SECRET=...длинный...
+   PSY_SEED_ADMIN_PASSWORD=...сложный...
+   POSTGRES_PASSWORD=...сложный...
+   PSY_MINIO_ACCESS_KEY=...
+   PSY_MINIO_SECRET_KEY=...
+   ```
+6. Запуск:
+   ```bash
+   docker compose up --build -d
+   ```
+7. Открыть `http://ВАШ_IP`, войти как `admin`, в `/admin` задать LLM.
+
+Локальные готовые секреты — в `credentials.local.txt` (не в git).
+
 ## Что уже подготовлено
 
 - Docker Compose: Postgres, Qdrant, MinIO, API, Web
