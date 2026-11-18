@@ -19,8 +19,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait-primary',
-        background_color: '#f7f0f4',
-        theme_color: '#8e3a74',
+        background_color: '#f5f1ea',
+        theme_color: '#2f4a3c',
         categories: ['education', 'medical'],
         icons: [
           {
