@@ -227,9 +227,8 @@ public final class Dtos {
             String keyLimitReset,
             boolean keyDisabled,
             String currentModel,
-            String defaultModel,
             String baseUrl,
-            String defaultBaseUrl,
+            String embeddingModel,
             String apiKeyMasked,
             boolean apiKeyConfigured,
             String billingError,
@@ -238,13 +237,19 @@ public final class Dtos {
     ) {
     }
 
-    public record AdminModelOption(String id, String name, Integer contextLength) {
+    public record AdminModelOption(
+            String id,
+            String name,
+            Integer contextLength,
+            BigDecimal promptPer1mRub,
+            BigDecimal completionPer1mRub
+    ) {
     }
 
     public record UpdateModelRequest(String model) {
     }
 
-    public record UpdateLlmConnectionRequest(String baseUrl, String apiKey) {
+    public record UpdateLlmConnectionRequest(String baseUrl, String apiKey, String embeddingModel) {
     }
 
     public record PromptSummary(String id, String label, int length) {
@@ -289,23 +294,33 @@ public final class Dtos {
     ) {
     }
 
-    public record KeycloakUserResponse(
+    public record LoginRequest(String username, String password) {
+    }
+
+    public record LoginResponse(
+            String accessToken,
+            String tokenType,
+            long expiresIn,
+            String username,
+            List<String> roles
+    ) {
+    }
+
+    public record AppUserResponse(
             String id,
             String username,
             String email,
-            String firstName,
-            String lastName,
+            String displayName,
             boolean enabled,
             List<String> roles
     ) {
     }
 
-    public record CreateKeycloakUserRequest(
+    public record CreateAppUserRequest(
             String username,
             String password,
             String email,
-            String firstName,
-            String lastName,
+            String displayName,
             boolean admin
     ) {
     }

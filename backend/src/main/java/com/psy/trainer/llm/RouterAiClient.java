@@ -65,13 +65,23 @@ public class RouterAiClient {
             return out;
         }
         for (JsonNode n : data) {
+            JsonNode pricing = n.path("pricing");
             out.add(new ModelInfo(
                     n.path("id").asText(),
                     n.path("name").asText(n.path("id").asText()),
-                    n.path("context_length").isNumber() ? n.path("context_length").asInt() : null
+                    n.path("context_length").isNumber() ? n.path("context_length").asInt() : null,
+                    decimalOrNull(pricing.path("prompt")),
+                    decimalOrNull(pricing.path("completion"))
             ));
         }
         return out;
+    }
+
+    private static BigDecimal decimalOrNull(JsonNode node) {
+        if (node == null || !node.isNumber()) {
+            return null;
+        }
+        return BigDecimal.valueOf(node.asDouble());
     }
 
     private JsonNode get(String path) {
@@ -116,6 +126,12 @@ public class RouterAiClient {
     ) {
     }
 
-    public record ModelInfo(String id, String name, Integer contextLength) {
+    public record ModelInfo(
+            String id,
+            String name,
+            Integer contextLength,
+            BigDecimal promptPricePerToken,
+            BigDecimal completionPricePerToken
+    ) {
     }
 }

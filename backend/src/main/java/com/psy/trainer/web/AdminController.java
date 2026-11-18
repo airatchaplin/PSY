@@ -82,12 +82,12 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public List<Dtos.KeycloakUserResponse> users() {
+    public List<Dtos.AppUserResponse> users() {
         return adminService.listUsers();
     }
 
     @PostMapping("/users")
-    public Dtos.KeycloakUserResponse createUser(@RequestBody Dtos.CreateKeycloakUserRequest request) {
+    public Dtos.AppUserResponse createUser(@RequestBody Dtos.CreateAppUserRequest request) {
         return adminService.createUser(request);
     }
 }

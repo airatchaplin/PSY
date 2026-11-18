@@ -28,9 +28,8 @@ export interface AdminOverview {
   keyLimitReset?: string | null
   keyDisabled: boolean
   currentModel: string
-  defaultModel: string
   baseUrl: string
-  defaultBaseUrl: string
+  embeddingModel: string
   apiKeyMasked: string
   apiKeyConfigured: boolean
   billingError?: string | null
@@ -42,6 +41,10 @@ export interface AdminModelOption {
   id: string
   name: string
   contextLength?: number | null
+  /** ₽ за 1 млн входных токенов */
+  promptPer1mRub?: number | null
+  /** ₽ за 1 млн выходных токенов */
+  completionPer1mRub?: number | null
 }
 
 export interface PromptSummary {
@@ -89,22 +92,20 @@ export interface AdminUsageQuery {
   days?: number
 }
 
-export interface KeycloakUser {
+export interface AppUser {
   id: string
   username: string
   email?: string | null
-  firstName?: string | null
-  lastName?: string | null
+  displayName?: string | null
   enabled: boolean
   roles: string[]
 }
 
-export interface CreateKeycloakUserPayload {
+export interface CreateAppUserPayload {
   username: string
   password: string
   email?: string
-  firstName?: string
-  lastName?: string
+  displayName?: string
   admin?: boolean
 }
 

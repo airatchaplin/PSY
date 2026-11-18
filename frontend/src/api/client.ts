@@ -1,4 +1,4 @@
-import { getToken } from '../auth/keycloak'
+import { getToken } from '../auth/session'
 import type {
   AdminModelOption,
   AdminOverview,
@@ -8,8 +8,8 @@ import type {
   CaseItem,
   Client,
   CreateCasePayload,
-  CreateKeycloakUserPayload,
-  KeycloakUser,
+  CreateAppUserPayload,
+  AppUser,
   Me,
   CaseShareLink,
   ImportSharedCaseResult,
@@ -126,7 +126,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ model })
     }),
-  adminSetConnection: (body: { baseUrl: string; apiKey?: string }) =>
+  adminSetConnection: (body: { baseUrl: string; apiKey?: string; embeddingModel?: string }) =>
     request<AdminOverview>('/api/admin/connection', {
       method: 'PUT',
       body: JSON.stringify(body)
@@ -152,9 +152,9 @@ export const api = {
     const qs = params.toString()
     return request<AdminUsageStats>(`/api/admin/usage${qs ? `?${qs}` : ''}`)
   },
-  adminUsers: () => request<KeycloakUser[]>('/api/admin/users'),
-  adminCreateUser: (body: CreateKeycloakUserPayload) =>
-    request<KeycloakUser>('/api/admin/users', {
+  adminUsers: () => request<AppUser[]>('/api/admin/users'),
+  adminCreateUser: (body: CreateAppUserPayload) =>
+    request<AppUser>('/api/admin/users', {
       method: 'POST',
       body: JSON.stringify(body)
     })

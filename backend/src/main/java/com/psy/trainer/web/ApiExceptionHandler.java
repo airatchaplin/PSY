@@ -3,6 +3,7 @@ package com.psy.trainer.web;
 import com.psy.trainer.service.NotFoundException;
 import com.psy.trainer.service.ConflictException;
 import com.psy.trainer.service.BadRequestException;
+import com.psy.trainer.service.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +20,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    ProblemDetail unauthorized(UnauthorizedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(BadRequestException.class)

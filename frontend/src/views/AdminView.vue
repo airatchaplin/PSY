@@ -7,7 +7,7 @@ import type {
   AdminOverview,
   AdminUsageChartMetric,
   AdminUsageStats,
-  KeycloakUser,
+  AppUser,
   PromptDetail,
   PromptSummary
 } from '../types'
@@ -16,13 +16,14 @@ const overview = ref<AdminOverview | null>(null)
 const models = ref<AdminModelOption[]>([])
 const usage = ref<AdminUsageStats | null>(null)
 const prompts = ref<PromptSummary[]>([])
-const users = ref<KeycloakUser[]>([])
+const users = ref<AppUser[]>([])
 const selectedPromptId = ref('')
 const promptDetail = ref<PromptDetail | null>(null)
 const modelDraft = ref('')
 const modelFilter = ref('')
 const baseUrlDraft = ref('')
 const apiKeyDraft = ref('')
+const embeddingModelDraft = ref('')
 const loading = ref(true)
 const usageLoading = ref(false)
 const chartMetric = ref<AdminUsageChartMetric>('cost')
@@ -45,8 +46,7 @@ const newUser = ref({
   username: '',
   password: '',
   email: '',
-  firstName: '',
-  lastName: '',
+  displayName: '',
   admin: false
 })
 
@@ -73,7 +73,7 @@ const sectionTitles: Record<AdminSection, { title: string; sub: string }> = {
   },
   users: {
     title: 'Пользователи',
-    sub: 'Создание учёток в Keycloak (realm psy).'
+    sub: 'Локальные учётки Spring Security (роли therapist / admin).'
   }
 }
 
@@ -81,11 +81,35 @@ const head = computed(() => sectionTitles[adminSection.value])
 
 const filteredModels = computed(() => {
   const q = modelFilter.value.trim().toLowerCase()
-  if (!q) return models.value.slice(0, 120)
-  return models.value.filter(m =>
-    m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q)
-  ).slice(0, 120)
+  const list = !q
+    ? models.value
+    : models.value.filter(m =>
+        m.id.toLowerCase().includes(q)
+        || m.name.toLowerCase().includes(q)
+        || formatModelPrice(m).toLowerCase().includes(q)
+      )
+  return list.slice(0, q ? 80 : 40)
 })
+
+const selectedModel = computed(() =>
+  models.value.find(m => m.id === modelDraft.value) || null
+)
+
+function formatPer1m(n?: number | null): string {
+  if (n == null || Number.isNaN(Number(n))) return '—'
+  const v = Number(n)
+  if (v === 0) return '0 ₽'
+  if (v < 0.01) return `${v.toLocaleString('ru-RU', { maximumFractionDigits: 4 })} ₽`
+  return `${v.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ₽`
+}
+
+function formatModelPrice(m: AdminModelOption): string {
+  return `вход ${formatPer1m(m.promptPer1mRub)} / выход ${formatPer1m(m.completionPer1mRub)}`
+}
+
+function pickModel(id: string) {
+  modelDraft.value = id
+}
 
 function seriesValue(row: { calls: number; tokens: number; costRub: number }) {
   if (chartMetric.value === 'tokens') return Number(row.tokens) || 0
@@ -233,7 +257,8 @@ function rub(n?: number | null) {
 function applyOverview(ov: AdminOverview) {
   overview.value = ov
   modelDraft.value = ov.currentModel
-  baseUrlDraft.value = ov.baseUrl || ov.defaultBaseUrl || 'https://routerai.ru/api/v1'
+  baseUrlDraft.value = ov.baseUrl || ''
+  embeddingModelDraft.value = ov.embeddingModel || ''
   apiKeyDraft.value = ''
 }
 
@@ -257,7 +282,7 @@ async function loadAll() {
         to: localInputToIso(appliedTo.value)
       }),
       api.adminPrompts(),
-      api.adminUsers().catch(() => [] as KeycloakUser[])
+      api.adminUsers().catch(() => [] as AppUser[])
     ])
     applyOverview(ov)
     usage.value = us
@@ -295,8 +320,7 @@ async function createUser() {
       username: newUser.value.username.trim(),
       password: newUser.value.password,
       email: newUser.value.email.trim() || undefined,
-      firstName: newUser.value.firstName.trim() || undefined,
-      lastName: newUser.value.lastName.trim() || undefined,
+      displayName: newUser.value.displayName.trim() || undefined,
       admin: newUser.value.admin
     })
     notice.value = `Пользователь ${newUser.value.username.trim()} создан`
@@ -304,8 +328,7 @@ async function createUser() {
       username: '',
       password: '',
       email: '',
-      firstName: '',
-      lastName: '',
+      displayName: '',
       admin: false
     }
     await loadUsers()
@@ -317,13 +340,21 @@ async function createUser() {
 }
 
 async function saveConnection() {
-  if (!baseUrlDraft.value.trim()) return
+  if (!baseUrlDraft.value.trim()) {
+    error.value = 'Укажите Base URL'
+    return
+  }
+  if (!embeddingModelDraft.value.trim() && !overview.value?.embeddingModel) {
+    error.value = 'Укажите embedding-модель'
+    return
+  }
   savingConnection.value = true
   notice.value = ''
   error.value = ''
   try {
-    const body: { baseUrl: string; apiKey?: string } = {
-      baseUrl: baseUrlDraft.value.trim()
+    const body: { baseUrl: string; apiKey?: string; embeddingModel?: string } = {
+      baseUrl: baseUrlDraft.value.trim(),
+      embeddingModel: embeddingModelDraft.value.trim() || undefined
     }
     if (apiKeyDraft.value.trim()) {
       body.apiKey = apiKeyDraft.value.trim()
@@ -440,7 +471,7 @@ onMounted(loadAll)
     <template v-if="overview && !loading">
       <section v-show="adminSection === 'connection'" class="settings-section">
         <p class="muted settings-hint">
-          Сохранённое здесь в БД приоритетнее. Vault/env — только bootstrap, пока ключ ещё не задан.
+          LLM настраивается только здесь и хранится в БД (`app_setting`).
         </p>
         <label class="admin-field">
           <span>Base URL</span>
@@ -456,10 +487,17 @@ onMounted(loadAll)
             :placeholder="overview.apiKeyConfigured ? `Сохранён: ${overview.apiKeyMasked}` : 'sk-…'"
           />
         </label>
+        <label class="admin-field">
+          <span>Embedding model</span>
+          <input
+            v-model="embeddingModelDraft"
+            class="field"
+            placeholder="openai/text-embedding-3-small"
+          />
+        </label>
         <p class="muted settings-hint">
           Оставьте ключ пустым, чтобы не менять текущий.
           Сейчас: {{ overview.apiKeyConfigured ? overview.apiKeyMasked : 'не задан' }}
-          · bootstrap base: {{ overview.defaultBaseUrl }}
         </p>
         <button type="button" class="toolbar-btn" :disabled="savingConnection" @click="saveConnection">
           <span class="material-symbols-outlined">{{ savingConnection ? 'progress_activity' : 'link' }}</span>
@@ -496,28 +534,63 @@ onMounted(loadAll)
 
       <section v-show="adminSection === 'models'" class="settings-section">
         <p class="muted settings-hint">
-          Текущая: <code>{{ overview.currentModel }}</code>
-          · env: <code>{{ overview.defaultModel }}</code>
+          Текущая модель чата:
+          <code>{{ overview.currentModel || 'не задана' }}</code>
+          <template v-if="selectedModel">
+            · {{ formatModelPrice(selectedModel) }}
+            <span v-if="selectedModel.contextLength"> · ctx {{ selectedModel.contextLength.toLocaleString('ru-RU') }}</span>
+          </template>
         </p>
-        <input v-model="modelFilter" class="field" placeholder="Поиск по названию или id…" />
+        <label class="admin-field">
+          <span>Поиск модели</span>
+          <input
+            v-model="modelFilter"
+            class="field"
+            type="search"
+            autocomplete="off"
+            placeholder="Название, id или цена…"
+          />
+        </label>
+        <div class="model-picker" role="listbox" aria-label="Каталог моделей">
+          <div
+            v-for="m in filteredModels"
+            :key="m.id"
+            class="model-picker-item"
+            role="option"
+            tabindex="0"
+            :aria-selected="modelDraft === m.id"
+            :class="{ selected: modelDraft === m.id }"
+            @click="pickModel(m.id)"
+            @keydown.enter.prevent="pickModel(m.id)"
+            @keydown.space.prevent="pickModel(m.id)"
+          >
+            <div class="model-picker-title">{{ m.name }}</div>
+            <div class="model-picker-id">{{ m.id }}</div>
+            <div class="model-picker-prices">
+              <span class="model-price-chip">вход {{ formatPer1m(m.promptPer1mRub) }}/1M</span>
+              <span class="model-price-chip">выход {{ formatPer1m(m.completionPer1mRub) }}/1M</span>
+              <span v-if="m.contextLength" class="model-price-chip muted">ctx {{ m.contextLength.toLocaleString('ru-RU') }}</span>
+            </div>
+          </div>
+          <p v-if="!models.length" class="muted settings-hint model-picker-empty">
+            Каталог пуст — проверьте API key и Base URL на вкладке «Подключение».
+          </p>
+          <p v-else-if="!filteredModels.length" class="muted settings-hint model-picker-empty">
+            Ничего не найдено по «{{ modelFilter }}».
+          </p>
+        </div>
         <div class="admin-model-row">
-          <select v-model="modelDraft" class="field admin-model-select" :disabled="!filteredModels.length">
-            <option disabled value="">Выберите модель…</option>
-            <option
-              v-for="m in filteredModels"
-              :key="m.id"
-              :value="m.id"
-            >{{ m.name }} — {{ m.id }}</option>
-          </select>
+          <input v-model="modelDraft" class="field" placeholder="provider/model-id" />
           <button type="button" class="toolbar-btn" :disabled="savingModel || !modelDraft" @click="saveModel">
             <span class="material-symbols-outlined">{{ savingModel ? 'progress_activity' : 'save' }}</span>
             <span>Применить</span>
           </button>
         </div>
-        <p class="muted settings-hint">Или введите id вручную:</p>
-        <input v-model="modelDraft" class="field" placeholder="provider/model-id" />
-        <p v-if="!models.length" class="muted settings-hint">Каталог пуст — проверьте API key и Base URL.</p>
-        <p v-else class="muted settings-hint">Найдено: {{ filteredModels.length }} из {{ models.length }}</p>
+        <p v-if="models.length" class="muted settings-hint">
+          Показано {{ filteredModels.length }} из {{ models.length }}
+          <template v-if="!modelFilter.trim()"> · начните вводить запрос, чтобы сузить список</template>
+          · цены в ₽ за 1 млн токенов
+        </p>
       </section>
 
       <section v-show="adminSection === 'usage'" class="settings-section usage-dashboard">
@@ -724,27 +797,23 @@ onMounted(loadAll)
             <input v-model="newUser.email" class="field" type="email" placeholder="ivan@psy.local" />
           </label>
           <label class="admin-field">
-            <span>Имя</span>
-            <input v-model="newUser.firstName" class="field" />
-          </label>
-          <label class="admin-field">
-            <span>Фамилия</span>
-            <input v-model="newUser.lastName" class="field" />
+            <span>Отображаемое имя</span>
+            <input v-model="newUser.displayName" class="field" />
           </label>
           <label class="case-share-all">
             <input v-model="newUser.admin" type="checkbox" />
             <span>Роль admin (+ therapist)</span>
           </label>
         </div>
-        <p class="muted settings-hint">По умолчанию выдаётся роль therapist. Галочка admin добавляет доступ к админке.</p>
+        <p class="muted settings-hint">По умолчанию выдаётся роль therapist. Галочка admin добавляет доступ к админке. Пароль хранится как BCrypt.</p>
         <button type="button" class="toolbar-btn" :disabled="savingUser" @click="createUser">
           <span class="material-symbols-outlined">{{ savingUser ? 'progress_activity' : 'person_add' }}</span>
-          <span>Создать в Keycloak</span>
+          <span>Создать пользователя</span>
         </button>
 
         <div class="admin-chart">
-          <div class="section-label">Пользователи realm</div>
-          <div v-if="!users.length" class="muted">Список пуст или Keycloak недоступен.</div>
+          <div class="section-label">Пользователи</div>
+          <div v-if="!users.length" class="muted">Список пуст.</div>
           <table v-else class="admin-user-table">
             <thead>
               <tr>
@@ -760,10 +829,10 @@ onMounted(loadAll)
                   <strong>{{ u.username }}</strong>
                   <div v-if="u.email" class="muted tiny">{{ u.email }}</div>
                 </td>
-                <td>{{ [u.firstName, u.lastName].filter(Boolean).join(' ') || '—' }}</td>
+                <td>{{ u.displayName || '—' }}</td>
                 <td>
                   <div class="tags">
-                    <span v-for="r in u.roles.filter(x => !x.startsWith('default-') && x !== 'offline_access' && x !== 'uma_authorization')" :key="r" class="tag">{{ r }}</span>
+                    <span v-for="r in u.roles" :key="r" class="tag">{{ r }}</span>
                   </div>
                 </td>
                 <td>{{ u.enabled ? 'активен' : 'выключен' }}</td>

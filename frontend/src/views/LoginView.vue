@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { loginWithPassword } from '../auth/keycloak'
+import { loginWithPassword } from '../auth/session'
 
 const emit = defineEmits<{
   success: []
 }>()
 
-const username = ref('therapist')
+const username = ref('admin')
 const password = ref('')
 const showPassword = ref(false)
 const busy = ref(false)

@@ -11,7 +11,7 @@
 
 | Роль | Кто | Где |
 |------|-----|-----|
-| Therapist | Человек (Keycloak user) | Основной чат, заметки, анализ, прогресс |
+| Therapist | Человек (JWT user, роль THERAPIST) | Основной чат, заметки, анализ, прогресс |
 | Client | LLM | Чат клиента; никогда не смешивается с супервизором |
 | Supervisor / Coach | LLM | Отдельная панель; реплики не попадают в память клиента |
 
@@ -27,15 +27,13 @@
 
 ## Стек
 
-- Java 21, Spring Boot 3.x, Flyway, Spring Security OAuth2 Resource Server
+- Java 21, Spring Boot 3.x, Flyway, Spring Security + JWT (HS256)
 - PostgreSQL 16
 - Qdrant (RAG)
 - MinIO (промпты)
-- HashiCorp Vault (секреты; path `secret/psy`)
 - Vue 3 + Vite + TypeScript
-- Keycloak (OIDC)
 - Docker Compose (локальный деплой)
-- LLM: OpenAI-compatible HTTP API / RouterAI — runtime через Admin UI (`app_setting`); bootstrap api-key из Vault
+- LLM: OpenAI-compatible HTTP API / RouterAI — только через Admin UI (`app_setting`)
 
 ## Docker-сервисы и порты
 
@@ -45,13 +43,12 @@
 | api | 8081 | Spring Boot |
 | postgres | 5444 | Основная БД (host; в Docker внутри 5432) |
 | qdrant | 6333 | Векторное хранилище |
-| keycloak | 8082 | Auth (realm `psy`) |
 | minio | 9000 / 9001 | Промпты (S3) + console |
-| vault | 8200 | Секреты (dev token `VAULT_TOKEN`) |
 
 ## Модель данных (Postgres)
 
-- `therapist_profile` — `keycloak_sub`, display name, disclaimer_accepted_at
+- `app_user` — username, BCrypt `password_hash`, roles (`THERAPIST`/`ADMIN`), enabled
+- `therapist_profile` — `auth_sub` (JWT `sub` = app_user.id), display name, disclaimer_accepted_at
 - `client` — персона: name, age, presenting_request, difficulty, behavior_tags[], defenses[], persona_json, status, therapist_id
 - `therapy_session` — client_id, started_at, ended_at, status (`ACTIVE`/`CLOSED`)
 - `message` — session_id, role (`THERAPIST`/`CLIENT`/`SYSTEM`), content, created_at
@@ -71,8 +68,9 @@ Supervisor/analysis = + top-k `gestalt_knowledge`.
 
 ## API (черновик)
 
-Все `/api/**` требуют Bearer JWT (Keycloak).
+`/api/auth/login` — публичный. Остальные `/api/**` требуют Bearer JWT.
 
+- `POST /api/auth/login` — `{username,password}` → JWT
 - `GET /api/me` — профиль; `POST /api/me/accept-disclaimer`
 - `GET /api/clients` — список клиентов терапевта
 - `POST /api/receptions/start` — новый клиент + ACTIVE session (опционально difficulty, caseId)
@@ -134,15 +132,15 @@ docker-compose.yml
 .env.example
 backend/          # Spring Boot
 frontend/         # Vue 3
-docker/           # Keycloak realm, nginx и т.п.
+docker/           # nginx и т.п.
 docs/knowledge/   # seed для gestalt_knowledge
 ```
 
 ## Фазы реализации
 
 1. AGENTS.md + каркас монорепо
-2. Docker: Postgres, Qdrant, Keycloak realm `psy`
-3. Backend + Security + Flyway
+2. Docker: Postgres, Qdrant, MinIO
+3. Backend + Security (JWT) + Flyway
 4. Генерация клиента, чат, завершение сеанса
 5. RAG Qdrant
 6. Супервизор, заметки, анализ
@@ -160,10 +158,9 @@ docker compose up --build
 
 - App: http://localhost:5173 (dev) или http://localhost (prod web)
 - API: http://localhost:8081
-- Vault: http://localhost:8200 (`VAULT_TOKEN`), path `secret/psy`
 - Postgres: localhost:5444
-- Keycloak: http://localhost:8082 — пароли из `.env` (realm template)
 - MinIO: http://localhost:9000 / console :9001
+- Логин: seed `admin` из `.env` (`PSY_SEED_ADMIN_*`)
 - Тема: по умолчанию `system` (prefers-color-scheme → ios-light / ios-dark)
-- Admin UI (`/admin`): LLM connection, баланс, промпты, usage, пользователи Keycloak
+- Admin UI (`/admin`): LLM connection, баланс, промпты, usage, пользователи
 - Деплой: [`DEPLOY.md`](DEPLOY.md)

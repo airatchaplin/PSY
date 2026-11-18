@@ -1,6 +1,5 @@
 package com.psy.trainer.service;
 
-import com.psy.trainer.config.PsyProperties;
 import com.psy.trainer.domain.AppSetting;
 import com.psy.trainer.repo.AppSettingRepository;
 import org.springframework.stereotype.Service;
@@ -14,36 +13,32 @@ public class RuntimeConfigService {
     public static final String KEY_LLM_MODEL = "llm.model";
     public static final String KEY_LLM_BASE_URL = "llm.baseUrl";
     public static final String KEY_LLM_API_KEY = "llm.apiKey";
+    public static final String KEY_LLM_EMBEDDING_MODEL = "llm.embeddingModel";
 
     private final AppSettingRepository settingRepository;
-    private final PsyProperties properties;
     private final AtomicReference<String> modelCache = new AtomicReference<>();
     private final AtomicReference<String> baseUrlCache = new AtomicReference<>();
     private final AtomicReference<String> apiKeyCache = new AtomicReference<>();
+    private final AtomicReference<String> embeddingModelCache = new AtomicReference<>();
 
-    public RuntimeConfigService(AppSettingRepository settingRepository, PsyProperties properties) {
+    public RuntimeConfigService(AppSettingRepository settingRepository) {
         this.settingRepository = settingRepository;
-        this.properties = properties;
     }
 
     public String getModel() {
-        return cachedOrLoad(modelCache, KEY_LLM_MODEL, properties.getLlm().getModel());
-    }
-
-    public String getDefaultModel() {
-        return properties.getLlm().getModel();
+        return cachedOrLoad(modelCache, KEY_LLM_MODEL);
     }
 
     public String getBaseUrl() {
-        return trimSlash(cachedOrLoad(baseUrlCache, KEY_LLM_BASE_URL, properties.getLlm().getBaseUrl()));
-    }
-
-    public String getDefaultBaseUrl() {
-        return trimSlash(properties.getLlm().getBaseUrl());
+        return trimSlash(cachedOrLoad(baseUrlCache, KEY_LLM_BASE_URL));
     }
 
     public String getApiKey() {
-        return cachedOrLoad(apiKeyCache, KEY_LLM_API_KEY, properties.getLlm().getApiKey());
+        return cachedOrLoad(apiKeyCache, KEY_LLM_API_KEY);
+    }
+
+    public String getEmbeddingModel() {
+        return cachedOrLoad(embeddingModelCache, KEY_LLM_EMBEDDING_MODEL);
     }
 
     public boolean hasApiKey() {
@@ -71,7 +66,7 @@ public class RuntimeConfigService {
     }
 
     @Transactional
-    public void setLlmConnection(String baseUrl, String apiKey) {
+    public void setLlmConnection(String baseUrl, String apiKey, String embeddingModel) {
         if (baseUrl == null || baseUrl.isBlank()) {
             throw new BadRequestException("Base URL не задан");
         }
@@ -84,15 +79,21 @@ public class RuntimeConfigService {
         if (apiKey != null && !apiKey.isBlank()) {
             persist(KEY_LLM_API_KEY, apiKey.trim(), apiKeyCache);
         }
+
+        if (embeddingModel != null && !embeddingModel.isBlank()) {
+            persist(KEY_LLM_EMBEDDING_MODEL, embeddingModel.trim(), embeddingModelCache);
+        } else if (getEmbeddingModel().isBlank()) {
+            throw new BadRequestException("Embedding-модель не задана");
+        }
     }
 
     @Transactional
     public void clearApiKey() {
         settingRepository.findById(KEY_LLM_API_KEY).ifPresent(settingRepository::delete);
-        apiKeyCache.set(null);
+        apiKeyCache.set("");
     }
 
-    private String cachedOrLoad(AtomicReference<String> cache, String key, String fallback) {
+    private String cachedOrLoad(AtomicReference<String> cache, String key) {
         String cached = cache.get();
         if (cached != null) {
             return cached;
@@ -100,7 +101,7 @@ public class RuntimeConfigService {
         String resolved = settingRepository.findById(key)
                 .map(AppSetting::getValue)
                 .filter(v -> v != null && !v.isBlank())
-                .orElse(fallback == null ? "" : fallback);
+                .orElse("");
         cache.set(resolved);
         return resolved;
     }

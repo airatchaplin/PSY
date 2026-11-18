@@ -14,10 +14,10 @@ public class PsyProperties {
             "http://127.0.0.1:5173",
             "http://127.0.0.1"
     ));
-    private final Llm llm = new Llm();
     private final Qdrant qdrant = new Qdrant();
     private final Minio minio = new Minio();
-    private final Keycloak keycloak = new Keycloak();
+    private final Jwt jwt = new Jwt();
+    private final AuthSeed authSeed = new AuthSeed();
     private String knowledgePath = "./docs/knowledge";
 
     public List<String> getCorsOrigins() {
@@ -39,10 +39,6 @@ public class PsyProperties {
         this.corsOrigins = corsOrigins;
     }
 
-    public Llm getLlm() {
-        return llm;
-    }
-
     public Qdrant getQdrant() {
         return qdrant;
     }
@@ -51,8 +47,12 @@ public class PsyProperties {
         return minio;
     }
 
-    public Keycloak getKeycloak() {
-        return keycloak;
+    public Jwt getJwt() {
+        return jwt;
+    }
+
+    public AuthSeed getAuthSeed() {
+        return authSeed;
     }
 
     public String getKnowledgePath() {
@@ -63,42 +63,54 @@ public class PsyProperties {
         this.knowledgePath = knowledgePath;
     }
 
-    public static class Llm {
-        private String baseUrl;
-        private String apiKey;
-        private String model;
-        private String embeddingModel;
+    public static class Jwt {
+        private String secret = "change-me-psy-jwt-secret-min-32-chars!!";
+        private String issuer = "psy-trainer";
+        private long ttlSeconds = 28800;
 
-        public String getBaseUrl() {
-            return baseUrl;
+        public String getSecret() {
+            return secret;
         }
 
-        public void setBaseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
+        public void setSecret(String secret) {
+            this.secret = secret;
         }
 
-        public String getApiKey() {
-            return apiKey;
+        public String getIssuer() {
+            return issuer;
         }
 
-        public void setApiKey(String apiKey) {
-            this.apiKey = apiKey;
+        public void setIssuer(String issuer) {
+            this.issuer = issuer;
         }
 
-        public String getModel() {
-            return model;
+        public long getTtlSeconds() {
+            return ttlSeconds;
         }
 
-        public void setModel(String model) {
-            this.model = model;
+        public void setTtlSeconds(long ttlSeconds) {
+            this.ttlSeconds = ttlSeconds;
+        }
+    }
+
+    public static class AuthSeed {
+        private String adminUsername = "admin";
+        private String adminPassword = "change-me-strong-admin";
+
+        public String getAdminUsername() {
+            return adminUsername;
         }
 
-        public String getEmbeddingModel() {
-            return embeddingModel;
+        public void setAdminUsername(String adminUsername) {
+            this.adminUsername = adminUsername;
         }
 
-        public void setEmbeddingModel(String embeddingModel) {
-            this.embeddingModel = embeddingModel;
+        public String getAdminPassword() {
+            return adminPassword;
+        }
+
+        public void setAdminPassword(String adminPassword) {
+            this.adminPassword = adminPassword;
         }
     }
 
@@ -186,45 +198,6 @@ public class PsyProperties {
 
         public void setBucket(String bucket) {
             this.bucket = bucket;
-        }
-    }
-
-    public static class Keycloak {
-        private String adminServerUrl = "http://localhost:8082";
-        private String realm = "psy";
-        private String adminUsername = "admin";
-        private String adminPassword = "admin";
-
-        public String getAdminServerUrl() {
-            return adminServerUrl;
-        }
-
-        public void setAdminServerUrl(String adminServerUrl) {
-            this.adminServerUrl = adminServerUrl;
-        }
-
-        public String getRealm() {
-            return realm;
-        }
-
-        public void setRealm(String realm) {
-            this.realm = realm;
-        }
-
-        public String getAdminUsername() {
-            return adminUsername;
-        }
-
-        public void setAdminUsername(String adminUsername) {
-            this.adminUsername = adminUsername;
-        }
-
-        public String getAdminPassword() {
-            return adminPassword;
-        }
-
-        public void setAdminPassword(String adminPassword) {
-            this.adminPassword = adminPassword;
         }
     }
 }

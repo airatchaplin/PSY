@@ -1,12 +1,16 @@
 package com.psy.trainer.service;
 
-import com.psy.trainer.keycloak.KeycloakAdminClient;
+import com.psy.trainer.domain.AppRole;
+import com.psy.trainer.domain.AppUser;
 import com.psy.trainer.llm.RouterAiClient;
+import com.psy.trainer.repo.AppUserRepository;
 import com.psy.trainer.web.dto.Dtos;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -19,20 +23,23 @@ public class AdminService {
     private final RuntimeConfigService runtimeConfigService;
     private final PromptStore promptStore;
     private final LlmUsageService llmUsageService;
-    private final KeycloakAdminClient keycloakAdminClient;
+    private final AppUserRepository appUserRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AdminService(
             RouterAiClient routerAiClient,
             RuntimeConfigService runtimeConfigService,
             PromptStore promptStore,
             LlmUsageService llmUsageService,
-            KeycloakAdminClient keycloakAdminClient
+            AppUserRepository appUserRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.routerAiClient = routerAiClient;
         this.runtimeConfigService = runtimeConfigService;
         this.promptStore = promptStore;
         this.llmUsageService = llmUsageService;
-        this.keycloakAdminClient = keycloakAdminClient;
+        this.appUserRepository = appUserRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Dtos.AdminOverviewResponse overview() {
@@ -61,9 +68,8 @@ public class AdminService {
                 key == null ? null : key.limitReset(),
                 key != null && key.disabled(),
                 runtimeConfigService.getModel(),
-                runtimeConfigService.getDefaultModel(),
                 runtimeConfigService.getBaseUrl(),
-                runtimeConfigService.getDefaultBaseUrl(),
+                runtimeConfigService.getEmbeddingModel(),
                 runtimeConfigService.maskedApiKey(),
                 runtimeConfigService.hasApiKey(),
                 billingError,
@@ -74,8 +80,21 @@ public class AdminService {
 
     public List<Dtos.AdminModelOption> models() {
         return routerAiClient.listModels().stream()
-                .map(m -> new Dtos.AdminModelOption(m.id(), m.name(), m.contextLength()))
+                .map(m -> new Dtos.AdminModelOption(
+                        m.id(),
+                        m.name(),
+                        m.contextLength(),
+                        per1m(m.promptPricePerToken()),
+                        per1m(m.completionPricePerToken())
+                ))
                 .toList();
+    }
+
+    private static BigDecimal per1m(BigDecimal perToken) {
+        if (perToken == null) {
+            return null;
+        }
+        return perToken.multiply(BigDecimal.valueOf(1_000_000L));
     }
 
     @Transactional
@@ -89,7 +108,7 @@ public class AdminService {
         if (request == null) {
             throw new BadRequestException("Пустой запрос");
         }
-        runtimeConfigService.setLlmConnection(request.baseUrl(), request.apiKey());
+        runtimeConfigService.setLlmConnection(request.baseUrl(), request.apiKey(), request.embeddingModel());
         return overview();
     }
 
@@ -118,34 +137,61 @@ public class AdminService {
         return llmUsageService.stats(from, to, model, source);
     }
 
-    public List<Dtos.KeycloakUserResponse> listUsers() {
-        return keycloakAdminClient.listUsers().stream()
-                .map(u -> new Dtos.KeycloakUserResponse(
-                        u.id(), u.username(), u.email(), u.firstName(), u.lastName(), u.enabled(), u.roles()
-                ))
+    @Transactional(readOnly = true)
+    public List<Dtos.AppUserResponse> listUsers() {
+        return appUserRepository.findAll().stream()
+                .sorted((a, b) -> a.getUsername().compareToIgnoreCase(b.getUsername()))
+                .map(this::toUserResponse)
                 .toList();
     }
 
-    public Dtos.KeycloakUserResponse createUser(Dtos.CreateKeycloakUserRequest request) {
+    @Transactional
+    public Dtos.AppUserResponse createUser(Dtos.CreateAppUserRequest request) {
         if (request == null) {
             throw new BadRequestException("Пустой запрос");
         }
-        var created = keycloakAdminClient.createUser(
-                request.username(),
-                request.password(),
-                request.email(),
-                request.firstName(),
-                request.lastName(),
-                request.admin()
+        if (request.username() == null || request.username().isBlank()) {
+            throw new BadRequestException("Укажите логин");
+        }
+        if (request.password() == null || request.password().isBlank()) {
+            throw new BadRequestException("Укажите пароль");
+        }
+        String username = request.username().trim();
+        if (appUserRepository.existsByUsernameIgnoreCase(username)) {
+            throw new BadRequestException("Пользователь уже существует");
+        }
+        EnumSet<AppRole> roles = EnumSet.of(AppRole.THERAPIST);
+        if (request.admin()) {
+            roles.add(AppRole.ADMIN);
+        }
+        String display = request.displayName() != null && !request.displayName().isBlank()
+                ? request.displayName().trim()
+                : username;
+        AppUser created = appUserRepository.save(AppUser.create(
+                username,
+                passwordEncoder.encode(request.password()),
+                display,
+                blankToNull(request.email()),
+                roles
+        ));
+        return toUserResponse(created);
+    }
+
+    private Dtos.AppUserResponse toUserResponse(AppUser u) {
+        return new Dtos.AppUserResponse(
+                u.getId().toString(),
+                u.getUsername(),
+                u.getEmail(),
+                u.getDisplayName(),
+                u.isEnabled(),
+                u.roleSet().stream().map(Enum::name).sorted().toList()
         );
-        return new Dtos.KeycloakUserResponse(
-                created.id(),
-                created.username(),
-                created.email(),
-                created.firstName(),
-                created.lastName(),
-                created.enabled(),
-                created.roles()
-        );
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

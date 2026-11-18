@@ -7,7 +7,7 @@ import CasesView from './views/CasesView.vue'
 import SharedCaseView from './views/SharedCaseView.vue'
 import SettingsView from './views/SettingsView.vue'
 import AdminView from './views/AdminView.vue'
-import { authenticated, hasAdminRole, isAdmin } from './auth/keycloak'
+import { authenticated, hasAdminRole, isAdmin } from './auth/session'
 import { stashPendingShareToken } from './casesUi'
 
 export const router = createRouter({

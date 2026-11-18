@@ -15,8 +15,8 @@ public class TherapistProfile {
     @Id
     private UUID id;
 
-    @Column(name = "keycloak_sub", nullable = false, unique = true, length = 128)
-    private String keycloakSub;
+    @Column(name = "auth_sub", nullable = false, unique = true, length = 128)
+    private String authSub;
 
     @Column(name = "display_name")
     private String displayName;
@@ -29,10 +29,10 @@ public class TherapistProfile {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    public static TherapistProfile create(String keycloakSub, String displayName, String email) {
+    public static TherapistProfile create(String authSub, String displayName, String email) {
         TherapistProfile p = new TherapistProfile();
         p.id = UUID.randomUUID();
-        p.keycloakSub = keycloakSub;
+        p.authSub = authSub;
         p.displayName = displayName;
         p.email = email;
         p.createdAt = Instant.now();
@@ -43,8 +43,8 @@ public class TherapistProfile {
         return id;
     }
 
-    public String getKeycloakSub() {
-        return keycloakSub;
+    public String getAuthSub() {
+        return authSub;
     }
 
     public String getDisplayName() {

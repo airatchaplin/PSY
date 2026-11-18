@@ -30,7 +30,7 @@ public class CurrentTherapistService {
             return java.util.Optional.empty();
         }
         String sub = jwt.getSubject();
-        return java.util.Optional.of(repository.findByKeycloakSub(sub).orElseGet(() -> {
+        return java.util.Optional.of(repository.findByAuthSub(sub).orElseGet(() -> {
             String name = firstNonBlank(jwt.getClaimAsString("preferred_username"), jwt.getClaimAsString("name"), "Therapist");
             String email = jwt.getClaimAsString("email");
             return repository.save(TherapistProfile.create(sub, name, email));

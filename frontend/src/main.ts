@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router'
-import { initKeycloak } from './auth/keycloak'
+import { initAuth } from './auth/session'
 import { initTheme } from './theme'
 import { initPwaInstall } from './pwa'
 import './styles.css'
@@ -12,7 +12,7 @@ initPwaInstall()
 
 async function bootstrap() {
   try {
-    await initKeycloak()
+    await initAuth()
   } catch (err) {
     console.error(err)
   }

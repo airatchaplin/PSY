@@ -2,7 +2,6 @@ package com.psy.trainer.llm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.psy.trainer.config.PsyProperties;
 import com.psy.trainer.service.BadRequestException;
 import com.psy.trainer.service.LlmUsageService;
 import com.psy.trainer.service.RuntimeConfigService;
@@ -22,19 +21,16 @@ import java.util.Map;
 public class LlmClient {
 
     private final WebClient webClient;
-    private final PsyProperties properties;
     private final ObjectMapper objectMapper;
     private final RuntimeConfigService runtimeConfigService;
     private final LlmUsageService llmUsageService;
 
     public LlmClient(
             WebClient.Builder builder,
-            PsyProperties properties,
             ObjectMapper objectMapper,
             RuntimeConfigService runtimeConfigService,
             LlmUsageService llmUsageService
     ) {
-        this.properties = properties;
         this.objectMapper = objectMapper;
         this.runtimeConfigService = runtimeConfigService;
         this.llmUsageService = llmUsageService;
@@ -95,8 +91,12 @@ public class LlmClient {
 
     public float[] embed(String text) {
         ensureConfigured();
+        String embeddingModel = runtimeConfigService.getEmbeddingModel();
+        if (embeddingModel == null || embeddingModel.isBlank()) {
+            throw new BadRequestException("Embedding-модель не задана — укажите её в админке");
+        }
         Map<String, Object> body = Map.of(
-                "model", properties.getLlm().getEmbeddingModel(),
+                "model", embeddingModel,
                 "input", text
         );
         JsonNode response = webClient.post()
@@ -110,7 +110,7 @@ public class LlmClient {
         if (response == null) {
             throw new BadRequestException("Пустой ответ embeddings");
         }
-        recordUsage(response, properties.getLlm().getEmbeddingModel(), "embed");
+        recordUsage(response, embeddingModel, "embed");
         JsonNode arr = response.path("data").path(0).path("embedding");
         if (!arr.isArray()) {
             throw new BadRequestException("Некорректный embedding");
@@ -187,6 +187,9 @@ public class LlmClient {
         }
         if (runtimeConfigService.getBaseUrl().isBlank()) {
             throw new BadRequestException("Base URL не задан — укажите его в админке");
+        }
+        if (runtimeConfigService.getModel().isBlank()) {
+            throw new BadRequestException("Модель не задана — выберите её в админке");
         }
     }
 

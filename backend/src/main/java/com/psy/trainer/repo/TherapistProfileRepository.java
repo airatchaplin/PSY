@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TherapistProfileRepository extends JpaRepository<TherapistProfile, UUID> {
-    Optional<TherapistProfile> findByKeycloakSub(String keycloakSub);
+    Optional<TherapistProfile> findByAuthSub(String authSub);
 
     java.util.List<TherapistProfile> findByIdNotOrderByDisplayNameAsc(UUID id);
 }

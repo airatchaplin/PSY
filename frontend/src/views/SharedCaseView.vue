@@ -8,7 +8,7 @@ import {
   setCasesMobileTab,
   stashPendingShareToken
 } from '../casesUi'
-import { authenticated } from '../auth/keycloak'
+import { authenticated } from '../auth/session'
 
 const route = useRoute()
 const router = useRouter()

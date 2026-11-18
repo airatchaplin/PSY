@@ -6,20 +6,6 @@ spring:
     name: psy-trainer
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-  config:
-    import: ${SPRING_CONFIG_IMPORT:optional:vault://}
-  cloud:
-    vault:
-      enabled: ${SPRING_CLOUD_VAULT_ENABLED:true}
-      uri: ${SPRING_CLOUD_VAULT_URI:http://localhost:8200}
-      authentication: TOKEN
-      token: ${SPRING_CLOUD_VAULT_TOKEN:${VAULT_TOKEN:psy-local-root}}
-      fail-fast: false
-      kv:
-        enabled: ${SPRING_CLOUD_VAULT_KV_ENABLED:true}
-        backend: ${SPRING_CLOUD_VAULT_KV_BACKEND:secret}
-        default-context: ${SPRING_CLOUD_VAULT_KV_DEFAULT_CONTEXT:psy}
-        application-name: psy
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5444/psy}
     username: ${SPRING_DATASOURCE_USERNAME:psy}
@@ -34,12 +20,6 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8082/realms/psy}
-          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:http://localhost:8082/realms/psy/protocol/openid-connect/certs}
 
 management:
   endpoints:
@@ -49,11 +29,13 @@ management:
 
 psy:
   cors-origins: ${PSY_CORS_ORIGINS:http://localhost:5173,http://localhost}
-  llm:
-    base-url: ${PSY_LLM_BASE_URL:https://routerai.ru/api/v1}
-    api-key: ${PSY_LLM_API_KEY:}
-    model: ${PSY_LLM_MODEL:deepseek/deepseek-v4-pro-0813}
-    embedding-model: ${PSY_EMBEDDING_MODEL:openai/text-embedding-3-small}
+  jwt:
+    secret: ${PSY_JWT_SECRET:change-me-psy-jwt-secret-min-32-chars!!}
+    issuer: ${PSY_JWT_ISSUER:psy-trainer}
+    ttl-seconds: ${PSY_JWT_TTL_SECONDS:28800}
+  auth-seed:
+    admin-username: ${PSY_SEED_ADMIN_USERNAME:admin}
+    admin-password: ${PSY_SEED_ADMIN_PASSWORD:change-me-strong-admin}
   qdrant:
     url: ${PSY_QDRANT_URL:http://localhost:6333}
     client-memory-collection: client_memory
@@ -66,8 +48,3 @@ psy:
     secret-key: ${PSY_MINIO_SECRET_KEY:psysecret}
     bucket: ${PSY_MINIO_BUCKET:psy-prompts}
     enabled: ${PSY_MINIO_ENABLED:true}
-  keycloak:
-    admin-server-url: ${PSY_KEYCLOAK_ADMIN_URL:http://localhost:8082}
-    realm: ${PSY_KEYCLOAK_REALM:psy}
-    admin-username: ${KEYCLOAK_ADMIN:admin}
-    admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}

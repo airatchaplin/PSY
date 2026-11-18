@@ -5215,7 +5215,7 @@ button.fab.mini.open {
 .admin-model-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  margin: 10px 0 8px;
 }
 .admin-model-row .field {
   flex: 1;
@@ -5224,6 +5224,77 @@ button.fab.mini.open {
   flex: 1;
   min-width: 0;
   max-width: 100%;
+}
+.model-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(460px, 55vh);
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid rgba(47, 74, 60, 0.16);
+  border-radius: 12px;
+  background: #fff;
+}
+.model-picker-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(47, 74, 60, 0.1);
+  border-radius: 10px;
+  background: #f7f8f6;
+  color: #1c2a22;
+  cursor: pointer;
+  line-height: 1.35;
+  min-height: auto;
+  box-shadow: none;
+  transform: none;
+}
+.model-picker-item:hover {
+  background: #eef4ef;
+  transform: none;
+  box-shadow: none;
+}
+.model-picker-item.selected {
+  border-color: #2f4a3c;
+  background: #e4efe8;
+}
+.model-picker-title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: #1c2a22;
+  margin: 0 0 4px;
+}
+.model-picker-id {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #5a6b61;
+  word-break: break-all;
+  margin: 0 0 8px;
+}
+.model-picker-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.model-price-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(47, 74, 60, 0.14);
+  font-size: 0.78rem;
+  color: #2f4a3c;
+  white-space: nowrap;
+}
+.model-price-chip.muted {
+  color: #6a7a70;
+}
+.model-picker-empty {
+  margin: 8px;
 }
 .admin-chart {
   margin-top: 14px;

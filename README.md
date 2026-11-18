@@ -1,6 +1,6 @@
 # PSY — симулятор терапевтической практики
 
-Учебное приложение для практики гештальт-сессий: ИИ-клиент, ИИ-супервизор, история в Postgres, RAG в Qdrant, Keycloak, Vue.
+Учебное приложение для практики гештальт-сессий: ИИ-клиент, ИИ-супервизор, история в Postgres, RAG в Qdrant, Spring Security JWT, Vue.
 
 Спецификация для агентов: [`AGENTS.md`](AGENTS.md).
 
@@ -16,12 +16,11 @@ docker compose up --build
 
 - Web: http://localhost
 - API: http://localhost:8081
-- Vault: http://localhost:8200 (token из `VAULT_TOKEN`)
 - Postgres: localhost:5444
-- Keycloak: http://localhost:8082 (логин/пароль из `.env`)
+- Логин: seed `admin` из `.env` (`PSY_SEED_ADMIN_*`)
 - Тема UI по умолчанию следует светлой/тёмной теме устройства
 
-Секреты сидятся в Vault (`secret/psy`). LLM Base URL / API key / модель — в Admin UI (`/admin`).
+Секреты — в `.env`. LLM (Base URL / API key / модели) — только в Admin UI (`/admin`).
 
 ### Dev frontend отдельно
 
@@ -31,4 +30,4 @@ npm install
 npm run dev
 ```
 
-Нужны поднятые `postgres`, `qdrant`, `keycloak`, `vault`, `api` (или `docker compose up postgres qdrant keycloak vault vault-init api`).
+Нужны поднятые `postgres`, `qdrant`, `minio` (или `docker compose up postgres qdrant minio`).

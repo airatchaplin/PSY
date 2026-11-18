@@ -12,17 +12,27 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -44,11 +54,38 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    SecretKey jwtSecretKey() {
+        byte[] secret = properties.getJwt().getSecret().getBytes(StandardCharsets.UTF_8);
+        if (secret.length < 32) {
+            throw new IllegalStateException("psy.jwt.secret must be at least 32 bytes");
+        }
+        return new SecretKeySpec(secret, "HmacSHA256");
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+        return NimbusJwtDecoder.withSecretKey(jwtSecretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+    }
+
+    @Bean
+    JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
     }
 
     @Bean
@@ -60,13 +97,16 @@ public class SecurityConfig {
 
     private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        if (realmAccess != null) {
-            Object rolesObj = realmAccess.get("roles");
-            if (rolesObj instanceof Collection<?> roles) {
-                for (Object role : roles) {
-                    if (role != null) {
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toString().toUpperCase()));
+        Object rolesClaim = jwt.getClaim("roles");
+        if (rolesClaim instanceof Collection<?> roles) {
+            for (Object role : roles) {
+                if (role != null) {
+                    String name = role.toString().trim().toUpperCase();
+                    if (name.startsWith("ROLE_")) {
+                        name = name.substring(5);
+                    }
+                    if (!name.isEmpty()) {
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + name));
                     }
                 }
             }

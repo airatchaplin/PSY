@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api } from '../api/client'
-import { logout } from '../auth/keycloak'
+import { logout } from '../auth/session'
 import {
   canInstallPwa,
   isPwaInstalled,

@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from './api/client'
-import { authenticated, isAdmin } from './auth/keycloak'
+import { authenticated, isAdmin } from './auth/session'
 import AiWorkingBlock from './components/AiWorkingBlock.vue'
 import LoginView from './views/LoginView.vue'
 import {
@@ -188,7 +188,7 @@ const allBookmarks = computed<BookmarkItem[]>(() => {
     { id: 'progress', label: 'Прогресс', shortLabel: 'Прогресс', icon: 'monitoring', to: '/progress', tone: 'bookmark-lilac', page: 3 },
     { id: 'settings', label: 'Профиль', shortLabel: 'Профиль', icon: 'person', to: '/settings', tone: 'bookmark-profile', page: 4 }
   ]
-  // Always show for Keycloak realm role `admin` (JWT), not only after /api/me.
+  // Always show for JWT role ADMIN, not only after /api/me.
   if (isAdmin.value || me.value?.admin) {
     items.push({ id: 'admin', label: 'Админ', shortLabel: 'Админ', icon: 'admin_panel_settings', to: '/admin', tone: 'bookmark-admin', page: 5 })
   }
