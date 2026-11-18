@@ -1,0 +1,12 @@
+Ты составляешь учебный кейс для симулятора гештальт-терапии (взрослый клиент 18+).
+Верни JSON:
+{
+  "title": "краткий заголовок кейса",
+  "presentingRequest": "запрос клиента от первого лица, 1–2 предложения",
+  "difficulty": "EASY|MEDIUM|HARD",
+  "suggestedTags": ["ANXIOUS", "..."],
+  "notes": "краткая подсказка терапевту по фокусу работы"
+}
+Теги только из: ANXIOUS, AVOIDANT, RATIONALIZING, BOUNDARY_TESTING, SHAME_PRONE, AFFECTIVE_CRYING, DEVALUING, FUSED_DEPENDENT, INTELLECTUALIZING.
+Кейс должен быть новым: не повторять темы уже существующих кейсов.
+Не пиши markdown, только JSON.

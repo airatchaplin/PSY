@@ -1,0 +1,1965 @@
+/* Theme tokens — override Material + notebook palette */
+
+:root,
+html[data-theme='rose'] {
+  --font: "Roboto", system-ui, sans-serif;
+  --display: "Roboto Flex", "Roboto", sans-serif;
+  --ease: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 0.7, 0.2);
+  --dur-fast: 160ms;
+  --dur-med: 280ms;
+  --dur-page: 340ms;
+  --title-tracking: -0.03em;
+  --label-tracking: 0.08em;
+  --body-size: 0.95rem;
+  --title-weight: 700;
+  --page-enter-y: 10px;
+
+  --md-sys-color-primary: #8e3a74;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffd7ef;
+  --md-sys-color-on-primary-container: #3b002c;
+  --md-sys-color-secondary: #75586c;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #f8daea;
+  --md-sys-color-on-secondary-container: #2b1226;
+  --md-sys-color-tertiary: #8a7356;
+  --md-sys-color-tertiary-container: #f5e8d4;
+  --md-sys-color-on-tertiary-container: #3d2f1e;
+  --md-sys-color-surface: #faf4f8;
+  --md-sys-color-on-surface: #1f1a1d;
+  --md-sys-color-surface-variant: #efdde7;
+  --md-sys-color-on-surface-variant: #4e444a;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f7eff4;
+  --md-sys-color-surface-container: #f3e8ef;
+  --md-sys-color-surface-container-high: #eee2ea;
+  --md-sys-color-surface-container-highest: #e8dce5;
+  --md-sys-color-outline: #80747b;
+  --md-sys-color-outline-variant: #d1c2cb;
+  --md-sys-color-inverse-surface: #342f32;
+
+  --notebook-bg: #f3e2ef;
+  --notebook-page: #fffafc;
+  --notebook-page-top: #fff7fb;
+  --notebook-spine: linear-gradient(180deg, #e8b4d8 0%, #c77db8 45%, #e8b4d8 100%);
+  --notebook-glow: 0 0 24px rgba(199, 125, 184, 0.55), 0 0 48px rgba(232, 180, 216, 0.35);
+  --client: #75586c;
+  --warn: #7a4f2b;
+  --shadow: 0 12px 40px rgba(62, 32, 54, 0.08);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  --btn-hover-shadow: 0 8px 20px rgba(142, 58, 116, 0.25);
+  --fab-shadow: 0 6px 16px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+
+  --bm-1: #ffc4e4;
+  --bm-1-active: #f09cc8;
+  --bm-2: #ffd7ef;
+  --bm-2-active: #f09cc8;
+  --bm-3: #f5e8d4;
+  --bm-3-ink: var(--md-sys-color-on-tertiary-container);
+  --bm-3-active: #d4b896;
+  --bm-4: #eed8e6;
+  --bm-4-ink: var(--md-sys-color-on-secondary-container);
+  --bm-4-active: #b889a8;
+  --bm-5: #f0e6ec;
+  --bm-5-ink: #5a4a52;
+  --bm-5-active: #c9a8bc;
+  --bm-active-label: #ffffff;
+
+  --bubble-therapist: var(--md-sys-color-primary-container);
+  --bubble-client: var(--md-sys-color-secondary-container);
+  --bubble-client-ink: var(--md-sys-color-on-secondary-container);
+  --bubble-supervisor: var(--md-sys-color-tertiary-container);
+  --bubble-supervisor-ink: var(--md-sys-color-on-tertiary-container);
+
+  --list-a: var(--md-sys-color-primary-container);
+  --list-b: var(--md-sys-color-secondary-container);
+  --list-b-ink: var(--md-sys-color-on-secondary-container);
+  --list-c: var(--md-sys-color-surface-container-high);
+  --list-c-ink: var(--md-sys-color-on-surface-variant);
+
+  --panel-notes: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --panel-sessions: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 55%, var(--notebook-page)) 48%,
+    var(--md-sys-color-secondary-container) 100%
+  );
+  --panel-analysis: linear-gradient(
+    180deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 35%, var(--notebook-page)) 100%
+  );
+
+  --sb-1: linear-gradient(180deg, #ffd7ef, #f4b6db);
+  --sb-1-active: linear-gradient(180deg, #f09cc8, #e078b0);
+  --sb-1-ink: #3b002c;
+  --sb-2: linear-gradient(180deg, #f8daea, #f0c9de);
+  --sb-2-active: linear-gradient(180deg, #c77db8, #8e3a74);
+  --sb-2-ink: var(--md-sys-color-on-secondary-container);
+  --sb-3: linear-gradient(180deg, #eee2ea, #e2d4de);
+  --sb-3-active: linear-gradient(180deg, #a85d8c, #8e3a74);
+  --sb-3-ink: var(--md-sys-color-on-primary-container);
+  --sb-4: linear-gradient(180deg, #e8dce5, #dcc8d4);
+  --sb-4-active: linear-gradient(180deg, #75586c, #5f455a);
+  --sb-4-ink: var(--md-sys-color-on-secondary-container);
+  --sb-active-label: #ffffff;
+
+  /* Derived surfaces — resolve against active theme tokens */
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent);
+  --supervisor-pane: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 88%, var(--notebook-page)) 0%,
+    var(--md-sys-color-tertiary-container) 100%
+  );
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-tertiary) 18%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-tertiary) 6%, transparent);
+
+  --panel-clients: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--notebook-page)) 48%,
+    var(--md-sys-color-primary-container) 100%
+  );
+  --panel-notes-side: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 55%, var(--notebook-page)) 0%,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 82%, var(--notebook-page)) 48%,
+    var(--md-sys-color-tertiary-container) 100%
+  );
+  --panel-progress: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+
+  --note-bg: var(--md-sys-color-tertiary-container);
+  --note-ink: var(--md-sys-color-on-tertiary-container);
+  --note-board: color-mix(in srgb, var(--note-bg) 42%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-tertiary) 35%, transparent);
+  --note-action: color-mix(in srgb, var(--note-ink) 10%, transparent);
+  --note-action-hover: color-mix(in srgb, var(--note-ink) 16%, transparent);
+  --note-shadow: color-mix(in srgb, var(--note-ink) 14%, transparent);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-tertiary) 72%, var(--note-bg));
+
+  --composer-surface: color-mix(in srgb, var(--notebook-page) 88%, var(--md-sys-color-surface-container-lowest));
+  --composer-send-shadow: color-mix(in srgb, var(--md-sys-color-primary) 28%, transparent);
+  --field-focus-bg: var(--md-sys-color-surface-container-lowest);
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--ink);
+
+  --rubric-fill: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-sys-color-primary) 65%, white),
+    var(--md-sys-color-primary)
+  );
+  --analysis-summary: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 75%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 55%, transparent) 100%
+  );
+
+  --tag-bg: rgba(255, 255, 255, 0.55);
+  --tag-ink: inherit;
+  --plain-item-bg: var(--md-sys-color-surface-container-lowest);
+  --plain-item-ink: var(--md-sys-color-on-surface);
+  --inset-panel-bg: var(--md-sys-color-surface-container-lowest);
+  --badge-bg: color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  --badge-ink: var(--md-sys-color-on-primary-container);
+
+  --notebook-spine-knob: color-mix(in srgb, var(--md-sys-color-primary) 68%, var(--md-sys-color-on-surface));
+  --new-reception-panel: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 50%, var(--notebook-page)) 0%,
+    var(--md-sys-color-primary-container) 100%
+  );
+  --new-reception-panel-border: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --analysis-chip-bg: color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, var(--notebook-page));
+  --analysis-chip-border: color-mix(in srgb, var(--md-sys-color-secondary) 16%, transparent);
+  --analysis-growth-bg: color-mix(in srgb, var(--md-sys-color-tertiary-container) 62%, var(--notebook-page));
+  --analysis-growth-border: color-mix(in srgb, var(--md-sys-color-tertiary) 18%, transparent);
+  --analysis-safety-bg: rgba(255, 236, 230, 0.75);
+  --analysis-safety-border: rgba(186, 26, 26, 0.12);
+  --analysis-safety-ink: var(--md-sys-color-on-surface);
+  --analysis-safety-icon: #ba1a1a;
+  --alt-card-bg: color-mix(in srgb, var(--notebook-page) 88%, var(--md-sys-color-surface-container-lowest));
+  --alt-card-border: color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  --alt-reply-ink: var(--md-sys-color-on-primary-container);
+  --rubric-track-bg: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  --rubric-tone-high: var(--md-sys-color-primary);
+  --label-strong-ink: var(--md-sys-color-on-surface);
+  --sticky-shadow-strong: color-mix(in srgb, var(--md-sys-color-inverse-surface) 28%, transparent);
+  --sticky-shadow: color-mix(in srgb, var(--md-sys-color-inverse-surface) 18%, transparent);
+  --sticky-shadow-soft: color-mix(in srgb, var(--md-sys-color-inverse-surface) 14%, transparent);
+  --sticky-shadow-faint: color-mix(in srgb, var(--md-sys-color-inverse-surface) 8%, transparent);
+}
+
+html[data-theme='masculine'] {
+  --font: "Barlow", "Roboto", system-ui, sans-serif;
+  --display: "Fraunces", "Times New Roman", serif;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 1, 1);
+  --dur-fast: 140ms;
+  --dur-med: 220ms;
+  --dur-page: 280ms;
+  --title-tracking: -0.015em;
+  --label-tracking: 0.1em;
+  --body-size: 0.96rem;
+  --title-weight: 650;
+  --page-enter-y: 6px;
+
+  --md-sys-color-primary: #2f3e46;
+  --md-sys-color-on-primary: #f4f7f5;
+  --md-sys-color-primary-container: #d7e3df;
+  --md-sys-color-on-primary-container: #102017;
+  --md-sys-color-secondary: #52796f;
+  --md-sys-color-on-secondary: #f4f7f5;
+  --md-sys-color-secondary-container: #dce8e3;
+  --md-sys-color-on-secondary-container: #1b2e29;
+  --md-sys-color-tertiary: #8492a6;
+  --md-sys-color-tertiary-container: #e2e8f0;
+  --md-sys-color-on-tertiary-container: #1a2332;
+  --md-sys-color-surface: #e8eef2;
+  --md-sys-color-on-surface: #1a2228;
+  --md-sys-color-surface-variant: #d5dde3;
+  --md-sys-color-on-surface-variant: #44525c;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f5f7;
+  --md-sys-color-surface-container: #e8eef2;
+  --md-sys-color-surface-container-high: #dce4ea;
+  --md-sys-color-surface-container-highest: #cfd8df;
+  --md-sys-color-outline: #6b7a84;
+  --md-sys-color-outline-variant: #b7c2ca;
+  --md-sys-color-inverse-surface: #1a2228;
+
+  --notebook-bg: #d5dee5;
+  --notebook-page: #f7f9fb;
+  --notebook-page-top: #eef3f6;
+  --notebook-spine: linear-gradient(180deg, #84a98c 0%, #52796f 45%, #354f52 100%);
+  --notebook-glow: 0 0 24px rgba(47, 62, 70, 0.28), 0 0 48px rgba(82, 121, 111, 0.2);
+  --client: #354f52;
+  --warn: #8a5a2b;
+  --shadow: 0 12px 40px rgba(26, 34, 40, 0.12);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 24%, transparent);
+  --btn-hover-shadow: 0 8px 20px rgba(47, 62, 70, 0.28);
+
+  --bm-1: #c5d4ce;
+  --bm-1-active: #52796f;
+  --bm-2: #d7e3df;
+  --bm-2-active: #2f3e46;
+  --bm-3: #e2e8f0;
+  --bm-3-ink: #1a2332;
+  --bm-3-active: #8492a6;
+  --bm-4: #cad5dc;
+  --bm-4-ink: #1a2228;
+  --bm-4-active: #44525c;
+  --bm-5: #dce4ea;
+  --bm-5-ink: #2f3e46;
+  --bm-5-active: #354f52;
+  --bm-active-label: #f4f7f5;
+
+  --bubble-therapist: var(--md-sys-color-primary-container);
+  --bubble-client: var(--md-sys-color-surface-container-high);
+  --bubble-client-ink: var(--md-sys-color-on-surface);
+  --bubble-supervisor: var(--md-sys-color-secondary-container);
+  --bubble-supervisor-ink: var(--md-sys-color-on-secondary-container);
+
+  --list-a: #d7e3df;
+  --list-b: #e2e8f0;
+  --list-b-ink: #1a2332;
+  --list-c: #cad5dc;
+  --list-c-ink: #1a2228;
+
+  --panel-notes: linear-gradient(180deg, #f7f9fb 0%, #eef3f6 100%);
+  --panel-sessions: linear-gradient(165deg, #eef5f1 0%, #dce8e3 48%, #cfe0d8 100%);
+  --panel-analysis: linear-gradient(180deg, #f7f9fb 0%, #e8eef2 100%);
+
+  --sb-1: linear-gradient(180deg, #d7e3df, #b7cdc4);
+  --sb-1-active: linear-gradient(180deg, #52796f, #2f3e46);
+  --sb-1-ink: #102017;
+  --sb-2: linear-gradient(180deg, #e2e8f0, #c5d0dc);
+  --sb-2-active: linear-gradient(180deg, #8492a6, #5c6b7d);
+  --sb-2-ink: #1a2332;
+  --sb-3: linear-gradient(180deg, #cfe0d8, #a8c4b6);
+  --sb-3-active: linear-gradient(180deg, #52796f, #354f52);
+  --sb-3-ink: #102017;
+  --sb-4: linear-gradient(180deg, #cad5dc, #a8b7c2);
+  --sb-4-active: linear-gradient(180deg, #44525c, #2f3e46);
+  --sb-4-ink: #1a2228;
+  --sb-active-label: #f4f7f5;
+
+  /* Derived surfaces — resolve against masculine tokens */
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent);
+  --supervisor-pane: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--notebook-page)) 0%,
+    var(--md-sys-color-secondary-container) 100%
+  );
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-secondary) 22%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-secondary) 8%, transparent);
+
+  --panel-clients: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, var(--notebook-page)) 48%,
+    var(--md-sys-color-secondary-container) 100%
+  );
+  --panel-notes-side: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 45%, var(--notebook-page)) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 78%, var(--notebook-page)) 48%,
+    var(--md-sys-color-primary-container) 100%
+  );
+  --panel-progress: linear-gradient(180deg, #eef3f6 0%, #f7f9fb 100%);
+
+  --note-bg: var(--md-sys-color-secondary-container);
+  --note-ink: var(--md-sys-color-on-secondary-container);
+  --note-board: color-mix(in srgb, var(--note-bg) 42%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-secondary) 32%, transparent);
+  --note-action: color-mix(in srgb, var(--note-ink) 10%, transparent);
+  --note-action-hover: color-mix(in srgb, var(--note-ink) 16%, transparent);
+  --note-shadow: color-mix(in srgb, var(--note-ink) 14%, transparent);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-secondary) 68%, var(--note-bg));
+
+  --composer-surface: color-mix(in srgb, var(--notebook-page) 90%, var(--md-sys-color-surface-container-lowest));
+  --composer-send-shadow: color-mix(in srgb, var(--md-sys-color-secondary) 32%, transparent);
+  --field-focus-bg: var(--md-sys-color-surface-container-lowest);
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--ink);
+
+  --rubric-fill: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-sys-color-secondary) 55%, white),
+    var(--md-sys-color-secondary)
+  );
+  --analysis-summary: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 80%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 60%, transparent) 100%
+  );
+
+  --tag-bg: rgba(255, 255, 255, 0.58);
+  --tag-ink: inherit;
+  --plain-item-bg: var(--md-sys-color-surface-container-lowest);
+  --plain-item-ink: var(--md-sys-color-on-surface);
+  --inset-panel-bg: var(--md-sys-color-surface-container-lowest);
+  --badge-bg: color-mix(in srgb, var(--md-sys-color-secondary) 20%, transparent);
+  --badge-ink: var(--md-sys-color-on-secondary-container);
+
+  /* Shell / auth — neutralize rose hardcodes in styles.css */
+  --shell-wash-a: color-mix(in srgb, var(--md-sys-color-secondary) 22%, transparent);
+  --shell-wash-b: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --shadow-rose: color-mix(in srgb, var(--md-sys-color-inverse-surface) 16%, transparent);
+  --shadow-rose-soft: color-mix(in srgb, var(--md-sys-color-inverse-surface) 10%, transparent);
+  --shadow-rose-strong: color-mix(in srgb, var(--md-sys-color-inverse-surface) 22%, transparent);
+  --line-tint: color-mix(in srgb, var(--md-sys-color-outline-variant) 88%, transparent);
+  --focus-border: color-mix(in srgb, var(--md-sys-color-secondary) 55%, transparent);
+  --focus-ring: color-mix(in srgb, var(--md-sys-color-secondary) 14%, transparent);
+  --auth-point-bg: color-mix(in srgb, var(--md-sys-color-primary-container) 65%, transparent);
+  --auth-point-border: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --auth-input-bg: color-mix(in srgb, var(--notebook-page) 94%, var(--md-sys-color-surface-container-lowest));
+  --inline-code-bg: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  --reception-panel-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--notebook-page)) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 72%, var(--notebook-page)) 100%
+  );
+  --reception-panel-border: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --analysis-chip-bg: color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, transparent);
+  --analysis-chip-border: color-mix(in srgb, var(--md-sys-color-secondary) 16%, transparent);
+  --analysis-chip-growth-bg: color-mix(in srgb, var(--md-sys-color-tertiary-container) 62%, transparent);
+  --analysis-chip-growth-border: color-mix(in srgb, var(--md-sys-color-tertiary) 18%, transparent);
+  --analysis-card-bg: rgba(255, 255, 255, 0.6);
+  --analysis-alt-ink: var(--md-sys-color-on-primary-container);
+}
+
+/* Masculine — patch rose-specific rules in styles.css (desktop + mobile) */
+html[data-theme='masculine'] .app-shell,
+html[data-theme='masculine'] .notebook-shell {
+  background:
+    radial-gradient(900px 500px at 10% -10%, var(--shell-wash-a), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, var(--shell-wash-b), transparent 50%),
+    var(--md-sys-color-surface);
+}
+
+
+html[data-theme='masculine'] .auth-points li {
+  background: var(--auth-point-bg);
+  border-color: var(--auth-point-border);
+}
+
+html[data-theme='masculine'] .auth-field input {
+  border-color: var(--line-tint);
+  background: var(--auth-input-bg);
+}
+
+html[data-theme='masculine'] .auth-field input:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+html[data-theme='masculine'] .auth-hint code {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='masculine'] .new-reception-panel {
+  background: var(--reception-panel-bg);
+  border-color: var(--reception-panel-border);
+}
+
+html[data-theme='masculine'] .analysis-generating-ring {
+  border-right-color: color-mix(in srgb, var(--md-sys-color-secondary) 28%, transparent);
+}
+
+html[data-theme='masculine'] .analysis-md h2 {
+  border-bottom-color: var(--line-tint);
+}
+
+html[data-theme='masculine'] .analysis-md code,
+html[data-theme='masculine'] .rubric-track {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='masculine'] .rubric-row {
+  background: var(--tag-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 52%, transparent);
+}
+
+html[data-theme='masculine'] .analysis-chip-list li {
+  background: var(--analysis-chip-bg);
+  border-color: var(--analysis-chip-border);
+}
+
+html[data-theme='masculine'] .analysis-chip-list.growth li {
+  background: var(--analysis-chip-growth-bg);
+  border-color: var(--analysis-chip-growth-border);
+}
+
+html[data-theme='masculine'] .alt-card {
+  background: var(--analysis-card-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+}
+
+html[data-theme='masculine'] .alt-block.alt p {
+  color: var(--analysis-alt-ink);
+}
+
+html[data-theme='masculine'] .rubric-row.tone-high .rubric-value {
+  color: var(--md-sys-color-primary);
+}
+
+html[data-theme='masculine'] .alt-why {
+  border-top-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+}
+
+html[data-theme='masculine'] .bookmark:hover {
+  box-shadow: 0 -6px 14px var(--shadow-rose);
+}
+
+html[data-theme='masculine'] .bookmark.active {
+  box-shadow: 0 -2px 8px var(--shadow-rose-soft);
+}
+
+html[data-theme='masculine'] .side-bookmark {
+  box-shadow:
+    0 0 0 1px var(--shadow-rose-soft),
+    4px 6px 14px var(--shadow-rose);
+}
+
+@media (max-width: 1100px) {
+  html[data-theme='masculine'] .session-split.with-supervisor .supervisor-side {
+    box-shadow: 0 16px 40px var(--shadow-rose-strong);
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme='masculine'] .notebook-shell {
+    background:
+      radial-gradient(600px 320px at 0% -10%, var(--shell-wash-a), transparent 55%),
+      var(--md-sys-color-surface);
+  }
+
+  html[data-theme='masculine'] .bookmark {
+    box-shadow: 0 4px 12px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='masculine'] .bookmark:hover {
+    box-shadow: 0 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='masculine'] .bookmark.active {
+    box-shadow: 0 2px 8px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='masculine'] .notebook.session-mode.notes-open .page-left {
+    box-shadow: 0 12px 40px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='masculine'] .side-bookmark {
+    box-shadow:
+      0 0 0 1px var(--shadow-rose-soft),
+      -4px 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='masculine'] .side-bookmark:hover {
+    box-shadow: -6px 8px 16px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='masculine'] .side-bookmark.active {
+    box-shadow: -2px 4px 10px var(--shadow-rose-soft);
+  }
+}
+
+html[data-theme='feminine'] {
+  --font: "Mulish", "Roboto", system-ui, sans-serif;
+  --display: "Cormorant Garamond", "Times New Roman", serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 0.7, 0.2);
+  --dur-fast: 180ms;
+  --dur-med: 320ms;
+  --dur-page: 400ms;
+  --title-tracking: -0.01em;
+  --label-tracking: 0.09em;
+  --body-size: 0.97rem;
+  --title-weight: 600;
+  --page-enter-y: 12px;
+
+  --md-sys-color-primary: #c45c7a;
+  --md-sys-color-on-primary: #fff8f7;
+  --md-sys-color-primary-container: #ffd8e1;
+  --md-sys-color-on-primary-container: #4a1426;
+  --md-sys-color-secondary: #c48a78;
+  --md-sys-color-on-secondary: #fff8f5;
+  --md-sys-color-secondary-container: #f3c4b4;
+  --md-sys-color-on-secondary-container: #3d2218;
+  --md-sys-color-tertiary: #b0893d;
+  --md-sys-color-tertiary-container: #ffe8c4;
+  --md-sys-color-on-tertiary-container: #3a2a00;
+  --md-sys-color-surface: #fff6f2;
+  --md-sys-color-on-surface: #2b1a18;
+  --md-sys-color-surface-variant: #f3dcd4;
+  --md-sys-color-on-surface-variant: #5c4038;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fff8f5;
+  --md-sys-color-surface-container: #ffefe8;
+  --md-sys-color-surface-container-high: #f8e4db;
+  --md-sys-color-surface-container-highest: #efd6cb;
+  --md-sys-color-outline: #7d5c54;
+  --md-sys-color-outline-variant: #e2c6bc;
+  --md-sys-color-inverse-surface: #3a2420;
+
+  --notebook-bg: #f3c4b4;
+  --notebook-page: #fff6f2;
+  --notebook-page-top: #fff1eb;
+  --notebook-spine: linear-gradient(180deg, #f3c4b4 0%, #c45c7a 48%, #f3c4b4 100%);
+  --notebook-glow: 0 0 24px rgba(196, 92, 122, 0.32), 0 0 48px rgba(243, 196, 180, 0.38);
+  --client: #9a4d6b;
+  --warn: #9a5b2f;
+  --shadow: 0 12px 40px rgba(74, 20, 38, 0.1);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  --btn-hover-shadow: 0 8px 20px rgba(196, 92, 122, 0.28);
+
+  --bm-1: #ffd8e1;
+  --bm-1-active: #c45c7a;
+  --bm-2: #ffe8dc;
+  --bm-2-active: #b84d68;
+  --bm-3: #ffe8c4;
+  --bm-3-ink: #3a2a00;
+  --bm-3-active: #b87842;
+  --bm-4: #f3c4b4;
+  --bm-4-ink: #3d2218;
+  --bm-4-active: #c45c7a;
+  --bm-5: #f8e0d6;
+  --bm-5-ink: #5c4038;
+  --bm-5-active: #a84864;
+  --bm-active-label: #fff8f7;
+
+  --bubble-therapist: var(--md-sys-color-primary-container);
+  --bubble-client: #f3c4b4;
+  --bubble-client-ink: #3d2218;
+  --bubble-supervisor: #ffe8c4;
+  --bubble-supervisor-ink: #3a2a00;
+
+  --list-a: #ffd8e1;
+  --list-b: #ffe8c4;
+  --list-b-ink: #3a2a00;
+  --list-c: #f3c4b4;
+  --list-c-ink: #3d2218;
+
+  --panel-notes: linear-gradient(180deg, #fff8f5 0%, #fff1eb 100%);
+  --panel-sessions: linear-gradient(165deg, #fff6f2 0%, #f8e4db 48%, #efd6cb 100%);
+  --panel-analysis: linear-gradient(180deg, #fff8f5 0%, #ffefe8 100%);
+
+  --sb-1: linear-gradient(180deg, #ffd8e1, #f5b0c0);
+  --sb-1-active: linear-gradient(180deg, #c45c7a, #a84864);
+  --sb-1-ink: #4a1426;
+  --sb-2: linear-gradient(180deg, #ffe8c4, #f5d498);
+  --sb-2-active: linear-gradient(180deg, #c9884a, #b0783d);
+  --sb-2-ink: #3a2a00;
+  --sb-3: linear-gradient(180deg, #f3c4b4, #e8b0a0);
+  --sb-3-active: linear-gradient(180deg, #c45c7a, #b84d68);
+  --sb-3-ink: #4a1426;
+  --sb-4: linear-gradient(180deg, #f8e0d6, #e8cfc4);
+  --sb-4-active: linear-gradient(180deg, #a84864, #8c3d54);
+  --sb-4-ink: #4a1426;
+  --sb-active-label: #fff8f7;
+
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent);
+  --supervisor-pane: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 88%, var(--notebook-page)) 0%,
+    var(--md-sys-color-tertiary-container) 100%
+  );
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-tertiary) 18%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-tertiary) 6%, transparent);
+
+  --panel-clients: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--notebook-page)) 48%,
+    var(--md-sys-color-primary-container) 100%
+  );
+  --panel-notes-side: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 55%, var(--notebook-page)) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, var(--notebook-page)) 48%,
+    var(--md-sys-color-secondary-container) 100%
+  );
+  --panel-progress: linear-gradient(180deg, #fff1eb 0%, #fff6f2 100%);
+
+  --note-bg: var(--md-sys-color-tertiary-container);
+  --note-ink: var(--md-sys-color-on-tertiary-container);
+  --note-board: color-mix(in srgb, var(--note-bg) 42%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-tertiary) 35%, transparent);
+  --note-action: color-mix(in srgb, var(--note-ink) 10%, transparent);
+  --note-action-hover: color-mix(in srgb, var(--note-ink) 16%, transparent);
+  --note-shadow: color-mix(in srgb, var(--note-ink) 14%, transparent);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-tertiary) 72%, var(--note-bg));
+
+  --composer-surface: color-mix(in srgb, var(--notebook-page) 88%, var(--md-sys-color-surface-container-lowest));
+  --composer-send-shadow: color-mix(in srgb, var(--md-sys-color-primary) 28%, transparent);
+  --field-focus-bg: var(--md-sys-color-surface-container-lowest);
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--ink);
+
+  --rubric-fill: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-sys-color-primary) 65%, white),
+    var(--md-sys-color-primary)
+  );
+  --analysis-summary: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 75%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 55%, transparent) 100%
+  );
+
+  --tag-bg: rgba(255, 255, 255, 0.58);
+  --tag-ink: inherit;
+  --plain-item-bg: var(--md-sys-color-surface-container-lowest);
+  --plain-item-ink: var(--md-sys-color-on-surface);
+  --inset-panel-bg: var(--md-sys-color-surface-container-lowest);
+  --badge-bg: color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  --badge-ink: var(--md-sys-color-on-primary-container);
+}
+
+html[data-theme='white'] {
+  --font: "DM Sans", "Roboto", system-ui, sans-serif;
+  --display: "DM Sans", "Roboto", system-ui, sans-serif;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 150ms;
+  --dur-med: 240ms;
+  --dur-page: 300ms;
+  --title-tracking: -0.04em;
+  --label-tracking: 0.07em;
+  --body-size: 0.94rem;
+  --title-weight: 650;
+  --page-enter-y: 8px;
+
+  --md-sys-color-primary: #2d3436;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #eceff1;
+  --md-sys-color-on-primary-container: #1a1e20;
+  --md-sys-color-secondary: #636e72;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #f1f3f4;
+  --md-sys-color-on-secondary-container: #2d3436;
+  --md-sys-color-tertiary: #747d8c;
+  --md-sys-color-tertiary-container: #eef0f3;
+  --md-sys-color-on-tertiary-container: #1e2329;
+  --md-sys-color-surface: #f5f6f7;
+  --md-sys-color-on-surface: #1a1e20;
+  --md-sys-color-surface-variant: #e6e9ec;
+  --md-sys-color-on-surface-variant: #5a6266;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafbfc;
+  --md-sys-color-surface-container: #f1f3f4;
+  --md-sys-color-surface-container-high: #e8ebed;
+  --md-sys-color-surface-container-highest: #dde1e4;
+  --md-sys-color-outline: #7a8388;
+  --md-sys-color-outline-variant: #cfd5d9;
+  --md-sys-color-inverse-surface: #1a1e20;
+
+  --notebook-bg: #e8ebed;
+  --notebook-page: #ffffff;
+  --notebook-page-top: #fafbfc;
+  --notebook-spine: linear-gradient(180deg, #dfe4e8 0%, #9aa5ab 45%, #dfe4e8 100%);
+  --notebook-glow: 0 0 20px rgba(45, 52, 54, 0.12), 0 0 40px rgba(99, 110, 114, 0.1);
+  --client: #2d3436;
+  --warn: #8a5a2b;
+  --shadow: 0 12px 36px rgba(26, 30, 32, 0.08);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  --btn-hover-shadow: 0 8px 18px rgba(45, 52, 54, 0.18);
+
+  --bm-1: #eceff1;
+  --bm-1-active: #2d3436;
+  --bm-2: #e6e9ec;
+  --bm-2-active: #636e72;
+  --bm-3: #eef0f3;
+  --bm-3-ink: #1e2329;
+  --bm-3-active: #747d8c;
+  --bm-4: #f1f3f4;
+  --bm-4-ink: #2d3436;
+  --bm-4-active: #5a6266;
+  --bm-5: #dde1e4;
+  --bm-5-ink: #2d3436;
+  --bm-5-active: #2d3436;
+  --bm-active-label: #ffffff;
+
+  --bubble-therapist: #eceff1;
+  --bubble-client: #e8ebed;
+  --bubble-client-ink: #1a1e20;
+  --bubble-supervisor: #eef0f3;
+  --bubble-supervisor-ink: #1e2329;
+
+  --list-a: #eceff1;
+  --list-b: #eef0f3;
+  --list-b-ink: #1e2329;
+  --list-c: #e6e9ec;
+  --list-c-ink: #1a1e20;
+
+  --panel-notes: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  --panel-sessions: linear-gradient(165deg, #ffffff 0%, #f1f3f4 48%, #e8ebed 100%);
+  --panel-analysis: linear-gradient(180deg, #ffffff 0%, #f5f6f7 100%);
+
+  --sb-1: linear-gradient(180deg, #eceff1, #d5d9dc);
+  --sb-1-active: linear-gradient(180deg, #2d3436, #1a1e20);
+  --sb-1-ink: #1a1e20;
+  --sb-2: linear-gradient(180deg, #eef0f3, #d8dde3);
+  --sb-2-active: linear-gradient(180deg, #747d8c, #5a6266);
+  --sb-2-ink: #1e2329;
+  --sb-3: linear-gradient(180deg, #e6e9ec, #cfd5d9);
+  --sb-3-active: linear-gradient(180deg, #636e72, #2d3436);
+  --sb-3-ink: #1a1e20;
+  --sb-4: linear-gradient(180deg, #f1f3f4, #dde1e4);
+  --sb-4-active: linear-gradient(180deg, #5a6266, #2d3436);
+  --sb-4-ink: #2d3436;
+  --sb-active-label: #ffffff;
+
+  /* Derived surfaces — cool neutral minimal */
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-outline) 22%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-outline) 8%, transparent);
+  --supervisor-pane: linear-gradient(
+    180deg,
+    var(--notebook-page) 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container) 88%, var(--notebook-page)) 100%
+  );
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-outline) 20%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-outline) 6%, transparent);
+
+  --panel-clients: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container) 78%, var(--notebook-page)) 48%,
+    var(--md-sys-color-surface-container) 100%
+  );
+  --panel-notes-side: linear-gradient(
+    165deg,
+    var(--notebook-page) 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container-high) 58%, var(--notebook-page)) 48%,
+    var(--md-sys-color-surface-container-high) 100%
+  );
+  --panel-progress: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+
+  --note-bg: var(--md-sys-color-surface-container);
+  --note-ink: var(--md-sys-color-on-surface);
+  --note-board: color-mix(in srgb, var(--note-bg) 38%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-outline) 28%, transparent);
+  --note-action: color-mix(in srgb, var(--note-ink) 8%, transparent);
+  --note-action-hover: color-mix(in srgb, var(--note-ink) 12%, transparent);
+  --note-shadow: color-mix(in srgb, var(--md-sys-color-inverse-surface) 10%, transparent);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-primary) 52%, var(--note-bg));
+
+  --composer-surface: color-mix(in srgb, var(--notebook-page) 92%, var(--md-sys-color-surface-container-lowest));
+  --composer-send-shadow: color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  --field-focus-bg: var(--md-sys-color-surface-container-lowest);
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-surface-container-high);
+  --stat-4-ink: var(--md-sys-color-on-surface);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-surface-container-high);
+  --card-5: var(--md-sys-color-surface-container);
+  --card-ink: var(--ink);
+
+  --rubric-fill: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-sys-color-primary) 45%, white),
+    var(--md-sys-color-primary)
+  );
+  --analysis-summary: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-sys-color-surface-container-high) 85%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container) 70%, transparent) 100%
+  );
+
+  --tag-bg: rgba(255, 255, 255, 0.72);
+  --tag-ink: inherit;
+  --plain-item-bg: var(--md-sys-color-surface-container-lowest);
+  --plain-item-ink: var(--md-sys-color-on-surface);
+  --inset-panel-bg: var(--md-sys-color-surface-container-lowest);
+  --badge-bg: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --badge-ink: var(--md-sys-color-on-surface);
+
+  /* Shell / auth — neutralize rose hardcodes in styles.css */
+  --shell-wash-a: color-mix(in srgb, var(--md-sys-color-outline-variant) 22%, transparent);
+  --shell-wash-b: color-mix(in srgb, var(--md-sys-color-secondary) 8%, transparent);
+  --shadow-rose: color-mix(in srgb, var(--md-sys-color-inverse-surface) 12%, transparent);
+  --shadow-rose-soft: color-mix(in srgb, var(--md-sys-color-inverse-surface) 8%, transparent);
+  --shadow-rose-strong: color-mix(in srgb, var(--md-sys-color-inverse-surface) 16%, transparent);
+  --line-tint: color-mix(in srgb, var(--md-sys-color-outline-variant) 90%, transparent);
+  --focus-border: color-mix(in srgb, var(--md-sys-color-primary) 48%, transparent);
+  --focus-ring: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --auth-point-bg: color-mix(in srgb, var(--md-sys-color-surface-container) 88%, var(--notebook-page));
+  --auth-point-border: color-mix(in srgb, var(--md-sys-color-outline) 16%, transparent);
+  --auth-input-bg: color-mix(in srgb, var(--notebook-page) 96%, var(--md-sys-color-surface-container-lowest));
+  --inline-code-bg: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+  --reception-panel-bg: linear-gradient(
+    180deg,
+    var(--md-sys-color-surface-container-low) 0%,
+    var(--md-sys-color-surface-container) 100%
+  );
+  --reception-panel-border: color-mix(in srgb, var(--md-sys-color-outline) 18%, transparent);
+  --analysis-chip-bg: color-mix(in srgb, var(--md-sys-color-surface-container) 80%, transparent);
+  --analysis-chip-border: color-mix(in srgb, var(--md-sys-color-outline) 14%, transparent);
+  --analysis-chip-growth-bg: color-mix(in srgb, var(--md-sys-color-surface-container-high) 75%, transparent);
+  --analysis-chip-growth-border: color-mix(in srgb, var(--md-sys-color-outline) 16%, transparent);
+  --analysis-card-bg: rgba(255, 255, 255, 0.78);
+  --analysis-alt-ink: var(--md-sys-color-on-surface);
+}
+
+/* White — patch rose-specific rules in styles.css (desktop + mobile) */
+html[data-theme='white'] .app-shell,
+html[data-theme='white'] .notebook-shell {
+  background:
+    radial-gradient(900px 500px at 10% -10%, var(--shell-wash-a), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, var(--shell-wash-b), transparent 50%),
+    var(--md-sys-color-surface);
+}
+
+html[data-theme='white'] .auth-points li {
+  background: var(--auth-point-bg);
+  border-color: var(--auth-point-border);
+}
+
+html[data-theme='white'] .auth-field input {
+  border-color: var(--line-tint);
+  background: var(--auth-input-bg);
+}
+
+html[data-theme='white'] .auth-field input:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+html[data-theme='white'] .auth-hint code {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='white'] .new-reception-panel {
+  background: var(--reception-panel-bg);
+  border-color: var(--reception-panel-border);
+}
+
+html[data-theme='white'] .analysis-generating-ring {
+  border-right-color: color-mix(in srgb, var(--md-sys-color-outline) 32%, transparent);
+}
+
+html[data-theme='white'] .analysis-md h2 {
+  border-bottom-color: var(--line-tint);
+}
+
+html[data-theme='white'] .analysis-md code,
+html[data-theme='white'] .rubric-track {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='white'] .rubric-row {
+  background: var(--tag-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 52%, transparent);
+}
+
+html[data-theme='white'] .analysis-chip-list li {
+  background: var(--analysis-chip-bg);
+  border-color: var(--analysis-chip-border);
+}
+
+html[data-theme='white'] .analysis-chip-list.growth li {
+  background: var(--analysis-chip-growth-bg);
+  border-color: var(--analysis-chip-growth-border);
+}
+
+html[data-theme='white'] .alt-card {
+  background: var(--analysis-card-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+}
+
+html[data-theme='white'] .alt-block.alt p {
+  color: var(--analysis-alt-ink);
+}
+
+html[data-theme='white'] .rubric-row.tone-high .rubric-value {
+  color: var(--md-sys-color-primary);
+}
+
+html[data-theme='white'] .alt-why {
+  border-top-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+}
+
+html[data-theme='white'] .bookmark:hover {
+  box-shadow: 0 -6px 14px var(--shadow-rose);
+}
+
+html[data-theme='white'] .bookmark.active {
+  box-shadow: 0 -2px 8px var(--shadow-rose-soft);
+}
+
+html[data-theme='white'] .side-bookmark {
+  box-shadow:
+    0 0 0 1px var(--shadow-rose-soft),
+    4px 6px 14px var(--shadow-rose);
+}
+
+@media (max-width: 1100px) {
+  html[data-theme='white'] .session-split.with-supervisor .supervisor-side {
+    box-shadow: 0 16px 40px var(--shadow-rose-strong);
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme='white'] .notebook-shell {
+    background:
+      radial-gradient(600px 320px at 0% -10%, var(--shell-wash-a), transparent 55%),
+      var(--md-sys-color-surface);
+  }
+
+  html[data-theme='white'] .bookmark {
+    box-shadow: 0 4px 12px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='white'] .bookmark:hover {
+    box-shadow: 0 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='white'] .bookmark.active {
+    box-shadow: 0 2px 8px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='white'] .notebook.session-mode.notes-open .page-left {
+    box-shadow: 0 12px 40px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='white'] .side-bookmark {
+    box-shadow:
+      0 0 0 1px var(--shadow-rose-soft),
+      -4px 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='white'] .side-bookmark:hover {
+    box-shadow: -6px 8px 16px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='white'] .side-bookmark.active {
+    box-shadow: -2px 4px 10px var(--shadow-rose-soft);
+  }
+}
+
+html[data-theme='black'] {
+  --font: "Sora", "Roboto", system-ui, sans-serif;
+  --display: "Instrument Serif", "Times New Roman", serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 0.7, 0.2);
+  --dur-fast: 170ms;
+  --dur-med: 300ms;
+  --dur-page: 380ms;
+  --title-tracking: -0.02em;
+  --label-tracking: 0.08em;
+  --body-size: 0.95rem;
+  --title-weight: 500;
+  --page-enter-y: 10px;
+
+  /* Metallic silver on black */
+  --md-sys-color-primary: #c5ccd4;
+  --md-sys-color-on-primary: #101418;
+  --md-sys-color-primary-container: #2b3036;
+  --md-sys-color-on-primary-container: #e8edf2;
+  --md-sys-color-secondary: #9aa3ad;
+  --md-sys-color-on-secondary: #12151a;
+  --md-sys-color-secondary-container: #262b31;
+  --md-sys-color-on-secondary-container: #e4e8ec;
+  --md-sys-color-tertiary: #8fa0b0;
+  --md-sys-color-tertiary-container: #24303a;
+  --md-sys-color-on-tertiary-container: #d7e2ec;
+  --md-sys-color-error: #ff8a80;
+  --md-sys-color-on-error: #3b0000;
+  --md-sys-color-surface: #0a0b0d;
+  --md-sys-color-on-surface: #f2f4f6;
+  --md-sys-color-surface-variant: #2a2e34;
+  --md-sys-color-on-surface-variant: #c2c8d0;
+  --md-sys-color-surface-container-lowest: #000000;
+  --md-sys-color-surface-container-low: #121417;
+  --md-sys-color-surface-container: #181b1f;
+  --md-sys-color-surface-container-high: #22262b;
+  --md-sys-color-surface-container-highest: #2c3137;
+  --md-sys-color-outline: #8b939c;
+  --md-sys-color-outline-variant: #3a4048;
+  --md-sys-color-inverse-surface: #f2f4f6;
+
+  --notebook-bg: #050607;
+  --notebook-page: #14171b;
+  --notebook-page-top: #1a1e23;
+  --notebook-spine: linear-gradient(180deg, #3a4048 0%, #c5ccd4 45%, #2b3036 100%);
+  --notebook-glow: 0 0 28px rgba(197, 204, 212, 0.18), 0 0 50px rgba(0, 0, 0, 0.6);
+  --client: #c5ccd4;
+  --warn: #d0a060;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --btn-hover-shadow: 0 8px 20px rgba(197, 204, 212, 0.22);
+
+  --bm-1: #22262b;
+  --bm-1-active: #c5ccd4;
+  --bm-2: #2b3036;
+  --bm-2-active: #9aa3ad;
+  --bm-3: #24303a;
+  --bm-3-ink: #d7e2ec;
+  --bm-3-active: #8fa0b0;
+  --bm-4: #262b31;
+  --bm-4-ink: #e4e8ec;
+  --bm-4-active: #8b939c;
+  --bm-5: #2c3137;
+  --bm-5-ink: #e8edf2;
+  --bm-5-active: #c5ccd4;
+  --bm-active-label: #101418;
+
+  --bubble-therapist: #2b3036;
+  --bubble-client: #22262b;
+  --bubble-client-ink: #f2f4f6;
+  --bubble-supervisor: #24303a;
+  --bubble-supervisor-ink: #d7e2ec;
+
+  --list-a: #22262b;
+  --list-b: #2b3036;
+  --list-b-ink: #e8edf2;
+  --list-c: #262b31;
+  --list-c-ink: #f2f4f6;
+
+  --panel-notes: linear-gradient(180deg, #14171b 0%, #121417 100%);
+  --panel-sessions: linear-gradient(165deg, #14171b 0%, #171c20 48%, #12161a 100%);
+  --panel-analysis: linear-gradient(180deg, #14171b 0%, #121417 100%);
+
+  --sb-1: linear-gradient(180deg, #2b3036, #1e2227);
+  --sb-1-active: linear-gradient(180deg, #c5ccd4, #9aa3ad);
+  --sb-1-ink: #e8edf2;
+  --sb-2: linear-gradient(180deg, #24303a, #1a232b);
+  --sb-2-active: linear-gradient(180deg, #8fa0b0, #6f8492);
+  --sb-2-ink: #d7e2ec;
+  --sb-3: linear-gradient(180deg, #262b31, #1a1e23);
+  --sb-3-active: linear-gradient(180deg, #9aa3ad, #7a838c);
+  --sb-3-ink: #e4e8ec;
+  --sb-4: linear-gradient(180deg, #2c3137, #1e2227);
+  --sb-4-active: linear-gradient(180deg, #c5ccd4, #8fa0b0);
+  --sb-4-ink: #f2f4f6;
+  --sb-active-label: #101418;
+
+  /* Derived surfaces — dark metal (override :root rose mixes) */
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  --supervisor-pane: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-sys-color-tertiary-container) 92%, var(--notebook-page)) 0%,
+    var(--md-sys-color-tertiary-container) 100%
+  );
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-tertiary) 28%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-tertiary) 12%, transparent);
+
+  --panel-clients: linear-gradient(
+    165deg,
+    var(--notebook-page-top) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 85%, var(--notebook-page)) 48%,
+    var(--md-sys-color-primary-container) 100%
+  );
+  --panel-notes-side: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--md-sys-color-secondary-container) 72%, var(--notebook-page)) 0%,
+    color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, var(--notebook-page)) 48%,
+    var(--md-sys-color-surface-container-high) 100%
+  );
+  --panel-progress: linear-gradient(180deg, #1a1e23 0%, #14171b 100%);
+
+  --note-bg: var(--md-sys-color-surface-container-high);
+  --note-ink: var(--md-sys-color-on-surface);
+  --note-board: color-mix(in srgb, var(--note-bg) 58%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-outline-variant) 90%, transparent);
+  --note-action: color-mix(in srgb, var(--note-ink) 8%, transparent);
+  --note-action-hover: color-mix(in srgb, var(--note-ink) 14%, transparent);
+  --note-shadow: color-mix(in srgb, black 48%, transparent);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-primary) 32%, var(--note-bg));
+
+  --composer-surface: color-mix(
+    in srgb,
+    var(--notebook-page) 70%,
+    var(--md-sys-color-surface-container-high)
+  );
+  --composer-send-shadow: color-mix(in srgb, var(--md-sys-color-primary) 35%, transparent);
+  --field-focus-bg: var(--md-sys-color-surface-container-high);
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--md-sys-color-on-surface);
+
+  --rubric-fill: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-sys-color-primary) 42%, var(--md-sys-color-surface-container-highest)),
+    var(--md-sys-color-primary)
+  );
+  --analysis-summary: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-sys-color-surface-container-high) 92%, transparent) 0%,
+    color-mix(in srgb, var(--md-sys-color-primary-container) 70%, transparent) 100%
+  );
+
+  --tag-bg: rgba(197, 204, 212, 0.3);
+  --tag-ink: #f2f4f6;
+  --plain-item-bg: #22262b;
+  --plain-item-ink: #f2f4f6;
+  --inset-panel-bg: #181b1f;
+  --badge-bg: rgba(197, 204, 212, 0.3);
+  --badge-ink: #f2f4f6;
+  --analysis-safety-bg: color-mix(in srgb, var(--md-sys-color-error) 16%, var(--md-sys-color-surface-container));
+  --analysis-safety-border: color-mix(in srgb, var(--md-sys-color-error) 34%, transparent);
+  --analysis-safety-ink: #ffcfc7;
+  --analysis-safety-icon: var(--md-sys-color-error);
+
+  --notebook-spine-knob: color-mix(in srgb, var(--md-sys-color-primary) 48%, var(--md-sys-color-surface-container-highest));
+  --new-reception-panel: linear-gradient(
+    180deg,
+    var(--md-sys-color-surface-container-high) 0%,
+    var(--md-sys-color-surface-container) 100%
+  );
+  --new-reception-panel-border: color-mix(in srgb, var(--md-sys-color-outline) 26%, transparent);
+  --analysis-chip-bg: color-mix(in srgb, var(--md-sys-color-surface-container-high) 90%, transparent);
+  --analysis-chip-border: color-mix(in srgb, var(--md-sys-color-outline) 24%, transparent);
+  --analysis-growth-bg: color-mix(in srgb, var(--md-sys-color-tertiary-container) 78%, transparent);
+  --analysis-growth-border: color-mix(in srgb, var(--md-sys-color-tertiary) 28%, transparent);
+  --alt-card-bg: color-mix(in srgb, var(--md-sys-color-surface-container-high) 94%, transparent);
+  --alt-card-border: color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+  --alt-reply-ink: var(--md-sys-color-on-surface);
+  --rubric-track-bg: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --rubric-tone-high: var(--md-sys-color-primary);
+  --label-strong-ink: var(--md-sys-color-on-surface);
+
+  /* Shell / auth — neutralize rose hardcodes in styles.css */
+  --shell-wash-a: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  --shell-wash-b: color-mix(in srgb, var(--md-sys-color-tertiary) 7%, transparent);
+  --shadow-rose: color-mix(in srgb, black 58%, transparent);
+  --shadow-rose-soft: color-mix(in srgb, black 40%, transparent);
+  --shadow-rose-strong: color-mix(in srgb, black 70%, transparent);
+  --line-tint: color-mix(in srgb, var(--md-sys-color-outline-variant) 88%, transparent);
+  --focus-border: color-mix(in srgb, var(--md-sys-color-primary) 58%, transparent);
+  --focus-ring: color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
+  --auth-point-bg: color-mix(in srgb, var(--md-sys-color-surface-container-high) 94%, var(--notebook-page));
+  --auth-point-border: color-mix(in srgb, var(--md-sys-color-outline) 24%, transparent);
+  --auth-input-bg: color-mix(in srgb, var(--notebook-page) 78%, var(--md-sys-color-surface-container-high));
+  --inline-code-bg: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --reception-panel-bg: var(--new-reception-panel);
+  --reception-panel-border: var(--new-reception-panel-border);
+  --analysis-chip-growth-bg: var(--analysis-growth-bg);
+  --analysis-chip-growth-border: var(--analysis-growth-border);
+  --analysis-card-bg: var(--alt-card-bg);
+  --analysis-alt-ink: var(--md-sys-color-on-surface);
+}
+
+/* Black — patch rose-specific rules in styles.css (desktop + mobile) */
+html[data-theme='black'] .app-shell,
+html[data-theme='black'] .notebook-shell {
+  background:
+    radial-gradient(900px 500px at 10% -10%, var(--shell-wash-a), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, var(--shell-wash-b), transparent 50%),
+    var(--md-sys-color-surface);
+}
+
+html[data-theme='black'] .auth-points li {
+  background: var(--auth-point-bg);
+  border-color: var(--auth-point-border);
+}
+
+html[data-theme='black'] .auth-field input {
+  border-color: var(--line-tint);
+  background: var(--auth-input-bg);
+  color: var(--md-sys-color-on-surface);
+}
+
+html[data-theme='black'] .auth-field input:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+html[data-theme='black'] .auth-hint code {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='black'] .new-reception-panel {
+  background: var(--reception-panel-bg);
+  border-color: var(--reception-panel-border);
+}
+
+html[data-theme='black'] .analysis-generating-ring {
+  border-right-color: color-mix(in srgb, var(--md-sys-color-outline) 35%, transparent);
+}
+
+html[data-theme='black'] .analysis-md h2 {
+  border-bottom-color: var(--line-tint);
+}
+
+html[data-theme='black'] .analysis-md code,
+html[data-theme='black'] .rubric-track {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='black'] .rubric-row {
+  background: var(--tag-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 65%, transparent);
+}
+
+html[data-theme='black'] .rubric-row.tone-low .rubric-value {
+  color: #d0a878;
+}
+
+html[data-theme='black'] .rubric-row.tone-low .rubric-fill {
+  background: linear-gradient(90deg, #8b7355, #d0a878);
+}
+
+html[data-theme='black'] .rubric-row.tone-mid .rubric-value {
+  color: #c5ccd4;
+}
+
+html[data-theme='black'] .rubric-row.tone-mid .rubric-fill {
+  background: linear-gradient(90deg, #6f7a84, #9aa3ad);
+}
+
+html[data-theme='black'] .analysis-chip-list li {
+  background: var(--analysis-chip-bg);
+  border-color: var(--analysis-chip-border);
+}
+
+html[data-theme='black'] .analysis-chip-list.growth li {
+  background: var(--analysis-chip-growth-bg);
+  border-color: var(--analysis-chip-growth-border);
+}
+
+html[data-theme='black'] .alt-card {
+  background: var(--analysis-card-bg);
+  border-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 65%, transparent);
+}
+
+html[data-theme='black'] .alt-block.alt p {
+  color: var(--analysis-alt-ink);
+}
+
+html[data-theme='black'] .rubric-row.tone-high .rubric-value {
+  color: var(--md-sys-color-primary);
+}
+
+html[data-theme='black'] .alt-why {
+  border-top-color: color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+}
+
+html[data-theme='black'] .session-entry-badge:not(.live):not(.paused):not(.analysis) {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 22%, var(--md-sys-color-surface-container-high));
+  color: var(--md-sys-color-on-surface);
+}
+
+html[data-theme='black'] .session-meta-chip {
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 88%, transparent);
+  color: var(--md-sys-color-on-surface);
+}
+
+html[data-theme='black'] .tag {
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+}
+
+html[data-theme='black'] .bookmark:not(.active).bookmark-rose,
+html[data-theme='black'] .bookmark:not(.active).bookmark-pink {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+
+html[data-theme='black'] .bookmark:hover {
+  box-shadow: 0 -6px 14px var(--shadow-rose);
+}
+
+html[data-theme='black'] .bookmark.active {
+  box-shadow: 0 -2px 8px var(--shadow-rose-soft);
+}
+
+html[data-theme='black'] .side-bookmark {
+  box-shadow:
+    0 0 0 1px var(--shadow-rose-soft),
+    4px 6px 14px var(--shadow-rose);
+}
+
+@media (max-width: 1100px) {
+  html[data-theme='black'] .session-split.with-supervisor .supervisor-side {
+    box-shadow: 0 16px 40px var(--shadow-rose-strong);
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme='black'] .notebook-shell {
+    background:
+      radial-gradient(600px 320px at 0% -10%, var(--shell-wash-a), transparent 55%),
+      var(--md-sys-color-surface);
+  }
+
+  html[data-theme='black'] .bookmark {
+    box-shadow: 0 4px 12px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='black'] .bookmark:hover {
+    box-shadow: 0 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='black'] .bookmark.active {
+    box-shadow: 0 2px 8px var(--shadow-rose-soft);
+  }
+
+  html[data-theme='black'] .notebook.session-mode.notes-open .page-left {
+    box-shadow: 0 12px 40px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='black'] .side-bookmark {
+    box-shadow:
+      0 0 0 1px var(--shadow-rose-soft),
+      -4px 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='black'] .side-bookmark:hover {
+    box-shadow: -6px 8px 16px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='black'] .side-bookmark.active {
+    box-shadow: -2px 4px 10px var(--shadow-rose-soft);
+  }
+}
+
+/* ——— iOS Light (system / SF) ——— */
+html[data-theme='ios-light'] {
+  color-scheme: light;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-exit: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-fast: 180ms;
+  --dur-med: 280ms;
+  --dur-page: 320ms;
+  --title-tracking: -0.022em;
+  --label-tracking: 0.02em;
+  --body-size: 0.97rem;
+  --title-weight: 700;
+  --page-enter-y: 8px;
+
+  --md-sys-color-primary: #007AFF;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #E5F1FF;
+  --md-sys-color-on-primary-container: #003A75;
+  --md-sys-color-secondary: #8E8E93;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #E5E5EA;
+  --md-sys-color-on-secondary-container: #1C1C1E;
+  --md-sys-color-tertiary: #5856D6;
+  --md-sys-color-tertiary-container: #EEEDFF;
+  --md-sys-color-on-tertiary-container: #2C2A7A;
+  --md-sys-color-error: #FF3B30;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-surface: #F2F2F7;
+  --md-sys-color-on-surface: #000000;
+  --md-sys-color-surface-variant: #E5E5EA;
+  --md-sys-color-on-surface-variant: rgba(60, 60, 67, 0.6);
+  --md-sys-color-surface-container-lowest: #FFFFFF;
+  --md-sys-color-surface-container-low: #F9F9FB;
+  --md-sys-color-surface-container: #F2F2F7;
+  --md-sys-color-surface-container-high: #EBEBF0;
+  --md-sys-color-surface-container-highest: #E5E5EA;
+  --md-sys-color-outline: #C7C7CC;
+  --md-sys-color-outline-variant: #D1D1D6;
+  --md-sys-color-inverse-surface: #1C1C1E;
+
+  --notebook-bg: #E5E5EA;
+  --notebook-page: #FFFFFF;
+  --notebook-page-top: #F9F9FB;
+  --notebook-spine: linear-gradient(180deg, #D1D1D6 0%, #AEAEB2 45%, #D1D1D6 100%);
+  --notebook-glow: 0 0 20px rgba(0, 0, 0, 0.06), 0 0 40px rgba(0, 122, 255, 0.08);
+  --client: #8E8E93;
+  --warn: #FF9500;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent);
+  --btn-hover-shadow: 0 6px 16px rgba(0, 122, 255, 0.28);
+
+  --bm-1: #E5F1FF;
+  --bm-1-active: #007AFF;
+  --bm-2: #E5E5EA;
+  --bm-2-active: #5856D6;
+  --bm-3: #FFF4E5;
+  --bm-3-ink: #9A5B00;
+  --bm-3-active: #FF9500;
+  --bm-4: #EEEDFF;
+  --bm-4-ink: #2C2A7A;
+  --bm-4-active: #5856D6;
+  --bm-5: #E5E5EA;
+  --bm-5-ink: #1C1C1E;
+  --bm-5-active: #1C1C1E;
+  --bm-active-label: #FFFFFF;
+
+  --bubble-therapist: #E5F1FF;
+  --bubble-client: #E5E5EA;
+  --bubble-client-ink: #000000;
+  --bubble-supervisor: #EEEDFF;
+  --bubble-supervisor-ink: #2C2A7A;
+
+  --list-a: #FFFFFF;
+  --list-b: #F2F2F7;
+  --list-b-ink: #000000;
+  --list-c: #E5E5EA;
+  --list-c-ink: #000000;
+
+  --panel-notes: linear-gradient(180deg, #FFFFFF 0%, #F9F9FB 100%);
+  --panel-sessions: linear-gradient(165deg, #FFFFFF 0%, #F2F2F7 48%, #EBEBF0 100%);
+  --panel-analysis: linear-gradient(180deg, #FFFFFF 0%, #F2F2F7 100%);
+
+  --sb-1: linear-gradient(180deg, #E5F1FF, #D6E9FF);
+  --sb-1-active: linear-gradient(180deg, #007AFF, #0063D1);
+  --sb-1-ink: #003A75;
+  --sb-2: linear-gradient(180deg, #EEEDFF, #DDDBFF);
+  --sb-2-active: linear-gradient(180deg, #5856D6, #4644B8);
+  --sb-2-ink: #2C2A7A;
+  --sb-3: linear-gradient(180deg, #E5E5EA, #D1D1D6);
+  --sb-3-active: linear-gradient(180deg, #8E8E93, #636366);
+  --sb-3-ink: #1C1C1E;
+  --sb-4: linear-gradient(180deg, #F2F2F7, #E5E5EA);
+  --sb-4-active: linear-gradient(180deg, #1C1C1E, #000000);
+  --sb-4-ink: #1C1C1E;
+  --sb-active-label: #FFFFFF;
+
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: color-mix(in srgb, var(--md-sys-color-outline) 55%, transparent);
+  --chat-pane-inset: color-mix(in srgb, var(--md-sys-color-outline) 18%, transparent);
+  --supervisor-pane: linear-gradient(180deg, var(--notebook-page) 0%, var(--md-sys-color-surface-container) 100%);
+  --supervisor-pane-border: color-mix(in srgb, var(--md-sys-color-outline) 45%, transparent);
+  --supervisor-pane-inset: color-mix(in srgb, var(--md-sys-color-outline) 14%, transparent);
+
+  --panel-clients: linear-gradient(165deg, #FFFFFF 0%, #F2F2F7 48%, #EBEBF0 100%);
+  --panel-notes-side: linear-gradient(165deg, #FFFFFF 0%, #F9F9FB 48%, #F2F2F7 100%);
+  --panel-progress: linear-gradient(180deg, #F9F9FB 0%, #FFFFFF 100%);
+
+  --note-bg: #F2F2F7;
+  --note-ink: #000000;
+  --note-board: color-mix(in srgb, var(--note-bg) 42%, var(--notebook-page));
+  --note-border: color-mix(in srgb, var(--md-sys-color-outline) 70%, transparent);
+  --note-action: rgba(60, 60, 67, 0.08);
+  --note-action-hover: rgba(60, 60, 67, 0.12);
+  --note-shadow: rgba(0, 0, 0, 0.08);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-primary) 18%, var(--note-bg));
+
+  --composer-surface: #FFFFFF;
+  --composer-send-shadow: rgba(0, 122, 255, 0.28);
+  --field-focus-bg: #FFFFFF;
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--md-sys-color-on-surface);
+
+  --rubric-fill: linear-gradient(90deg, #5AC8FA, #007AFF);
+  --analysis-summary: linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(88, 86, 214, 0.08) 100%);
+
+  --tag-bg: rgba(142, 142, 147, 0.16);
+  --tag-ink: #1C1C1E;
+  --plain-item-bg: #FFFFFF;
+  --plain-item-ink: #000000;
+  --inset-panel-bg: #F2F2F7;
+  --badge-bg: rgba(0, 122, 255, 0.12);
+  --badge-ink: #007AFF;
+
+  --shell-wash-a: rgba(0, 122, 255, 0.06);
+  --shell-wash-b: rgba(88, 86, 214, 0.05);
+  --shadow-rose: rgba(0, 0, 0, 0.1);
+  --shadow-rose-soft: rgba(0, 0, 0, 0.06);
+  --shadow-rose-strong: rgba(0, 0, 0, 0.16);
+  --line-tint: rgba(60, 60, 67, 0.18);
+  --focus-border: rgba(0, 122, 255, 0.55);
+  --focus-ring: rgba(0, 122, 255, 0.16);
+  --auth-point-bg: #FFFFFF;
+  --auth-point-border: rgba(60, 60, 67, 0.12);
+  --auth-input-bg: #FFFFFF;
+  --inline-code-bg: rgba(0, 122, 255, 0.1);
+  --reception-panel-bg: linear-gradient(180deg, #F9F9FB 0%, #F2F2F7 100%);
+  --reception-panel-border: rgba(60, 60, 67, 0.14);
+  --analysis-chip-bg: rgba(0, 122, 255, 0.08);
+  --analysis-chip-border: rgba(0, 122, 255, 0.14);
+  --analysis-chip-growth-bg: rgba(255, 149, 0, 0.1);
+  --analysis-chip-growth-border: rgba(255, 149, 0, 0.22);
+  --analysis-card-bg: rgba(255, 255, 255, 0.92);
+  --analysis-alt-ink: #000000;
+  --analysis-growth-bg: var(--analysis-chip-growth-bg);
+  --analysis-growth-border: var(--analysis-chip-growth-border);
+  --alt-card-bg: #FFFFFF;
+  --alt-card-border: rgba(60, 60, 67, 0.14);
+  --alt-reply-ink: #000000;
+  --rubric-track-bg: rgba(0, 122, 255, 0.12);
+  --rubric-tone-high: #007AFF;
+  --label-strong-ink: #000000;
+  --notebook-spine-knob: #AEAEB2;
+  --new-reception-panel: var(--reception-panel-bg);
+  --new-reception-panel-border: var(--reception-panel-border);
+}
+
+/* ——— iOS Dark (system / SF) ——— */
+html[data-theme='ios-dark'] {
+  color-scheme: dark;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-exit: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-fast: 180ms;
+  --dur-med: 280ms;
+  --dur-page: 320ms;
+  --title-tracking: -0.022em;
+  --label-tracking: 0.02em;
+  --body-size: 0.97rem;
+  --title-weight: 700;
+  --page-enter-y: 8px;
+
+  --md-sys-color-primary: #0A84FF;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #003A75;
+  --md-sys-color-on-primary-container: #E5F1FF;
+  --md-sys-color-secondary: #8E8E93;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #3A3A3C;
+  --md-sys-color-on-secondary-container: #F2F2F7;
+  --md-sys-color-tertiary: #5E5CE6;
+  --md-sys-color-tertiary-container: #2C2A7A;
+  --md-sys-color-on-tertiary-container: #EEEDFF;
+  --md-sys-color-error: #FF453A;
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-surface: #000000;
+  --md-sys-color-on-surface: #FFFFFF;
+  --md-sys-color-surface-variant: #2C2C2E;
+  --md-sys-color-on-surface-variant: rgba(235, 235, 245, 0.6);
+  --md-sys-color-surface-container-lowest: #000000;
+  --md-sys-color-surface-container-low: #1C1C1E;
+  --md-sys-color-surface-container: #1C1C1E;
+  --md-sys-color-surface-container-high: #2C2C2E;
+  --md-sys-color-surface-container-highest: #3A3A3C;
+  --md-sys-color-outline: #48484A;
+  --md-sys-color-outline-variant: #3A3A3C;
+  --md-sys-color-inverse-surface: #F2F2F7;
+
+  --notebook-bg: #000000;
+  --notebook-page: #1C1C1E;
+  --notebook-page-top: #2C2C2E;
+  --notebook-spine: linear-gradient(180deg, #3A3A3C 0%, #8E8E93 45%, #2C2C2E 100%);
+  --notebook-glow: 0 0 24px rgba(10, 132, 255, 0.16), 0 0 48px rgba(0, 0, 0, 0.7);
+  --client: #8E8E93;
+  --warn: #FF9F0A;
+  --shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+  --btn-radius: 14px;
+  --btn-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --btn-hover-shadow: 0 6px 16px rgba(10, 132, 255, 0.35);
+
+  --bm-1: #003A75;
+  --bm-1-active: #0A84FF;
+  --bm-2: #2C2C2E;
+  --bm-2-active: #5E5CE6;
+  --bm-3: #3A2E14;
+  --bm-3-ink: #FFD60A;
+  --bm-3-active: #FF9F0A;
+  --bm-4: #2C2A7A;
+  --bm-4-ink: #EEEDFF;
+  --bm-4-active: #5E5CE6;
+  --bm-5: #3A3A3C;
+  --bm-5-ink: #F2F2F7;
+  --bm-5-active: #F2F2F7;
+  --bm-active-label: #FFFFFF;
+
+  --bubble-therapist: #003A75;
+  --bubble-client: #2C2C2E;
+  --bubble-client-ink: #FFFFFF;
+  --bubble-supervisor: #2C2A7A;
+  --bubble-supervisor-ink: #EEEDFF;
+
+  --list-a: #1C1C1E;
+  --list-b: #2C2C2E;
+  --list-b-ink: #FFFFFF;
+  --list-c: #3A3A3C;
+  --list-c-ink: #FFFFFF;
+
+  --panel-notes: linear-gradient(180deg, #1C1C1E 0%, #000000 100%);
+  --panel-sessions: linear-gradient(165deg, #1C1C1E 0%, #2C2C2E 48%, #1C1C1E 100%);
+  --panel-analysis: linear-gradient(180deg, #1C1C1E 0%, #000000 100%);
+
+  --sb-1: linear-gradient(180deg, #003A75, #002952);
+  --sb-1-active: linear-gradient(180deg, #0A84FF, #0066CC);
+  --sb-1-ink: #E5F1FF;
+  --sb-2: linear-gradient(180deg, #2C2A7A, #1E1C55);
+  --sb-2-active: linear-gradient(180deg, #5E5CE6, #4644B8);
+  --sb-2-ink: #EEEDFF;
+  --sb-3: linear-gradient(180deg, #3A3A3C, #2C2C2E);
+  --sb-3-active: linear-gradient(180deg, #8E8E93, #636366);
+  --sb-3-ink: #F2F2F7;
+  --sb-4: linear-gradient(180deg, #2C2C2E, #1C1C1E);
+  --sb-4-active: linear-gradient(180deg, #F2F2F7, #AEAEB2);
+  --sb-4-ink: #F2F2F7;
+  --sb-active-label: #FFFFFF;
+
+  --chat-pane: linear-gradient(180deg, var(--notebook-page-top) 0%, var(--notebook-page) 100%);
+  --chat-pane-border: rgba(84, 84, 88, 0.65);
+  --chat-pane-inset: rgba(84, 84, 88, 0.3);
+  --supervisor-pane: linear-gradient(180deg, #1C1C1E 0%, #2C2C2E 100%);
+  --supervisor-pane-border: rgba(84, 84, 88, 0.55);
+  --supervisor-pane-inset: rgba(84, 84, 88, 0.25);
+
+  --panel-clients: linear-gradient(165deg, #1C1C1E 0%, #2C2C2E 48%, #1C1C1E 100%);
+  --panel-notes-side: linear-gradient(165deg, #1C1C1E 0%, #2C2C2E 48%, #1C1C1E 100%);
+  --panel-progress: linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%);
+
+  --note-bg: #2C2C2E;
+  --note-ink: #FFFFFF;
+  --note-board: color-mix(in srgb, var(--note-bg) 70%, var(--notebook-page));
+  --note-border: rgba(84, 84, 88, 0.65);
+  --note-action: rgba(235, 235, 245, 0.08);
+  --note-action-hover: rgba(235, 235, 245, 0.14);
+  --note-shadow: rgba(0, 0, 0, 0.45);
+  --note-composer-btn: color-mix(in srgb, var(--md-sys-color-primary) 28%, var(--note-bg));
+
+  --composer-surface: #1C1C1E;
+  --composer-send-shadow: rgba(10, 132, 255, 0.35);
+  --field-focus-bg: #2C2C2E;
+
+  --stat-2: var(--list-b);
+  --stat-2-ink: var(--list-b-ink);
+  --stat-3: var(--list-c);
+  --stat-3-ink: var(--list-c-ink);
+  --stat-4: var(--md-sys-color-secondary-container);
+  --stat-4-ink: var(--md-sys-color-on-secondary-container);
+
+  --card-1: var(--list-a);
+  --card-2: var(--list-b);
+  --card-3: var(--list-c);
+  --card-4: var(--md-sys-color-secondary-container);
+  --card-5: var(--md-sys-color-primary-container);
+  --card-ink: var(--md-sys-color-on-surface);
+
+  --rubric-fill: linear-gradient(90deg, #64D2FF, #0A84FF);
+  --analysis-summary: linear-gradient(135deg, rgba(10, 132, 255, 0.16) 0%, rgba(94, 92, 230, 0.14) 100%);
+
+  --tag-bg: rgba(142, 142, 147, 0.28);
+  --tag-ink: #F2F2F7;
+  --plain-item-bg: #2C2C2E;
+  --plain-item-ink: #FFFFFF;
+  --inset-panel-bg: #1C1C1E;
+  --badge-bg: rgba(10, 132, 255, 0.28);
+  --badge-ink: #64D2FF;
+  --analysis-safety-bg: rgba(255, 69, 58, 0.16);
+  --analysis-safety-border: rgba(255, 69, 58, 0.34);
+  --analysis-safety-ink: #FFD0CD;
+  --analysis-safety-icon: #FF453A;
+
+  --shell-wash-a: rgba(10, 132, 255, 0.08);
+  --shell-wash-b: rgba(94, 92, 230, 0.06);
+  --shadow-rose: rgba(0, 0, 0, 0.55);
+  --shadow-rose-soft: rgba(0, 0, 0, 0.38);
+  --shadow-rose-strong: rgba(0, 0, 0, 0.7);
+  --line-tint: rgba(84, 84, 88, 0.65);
+  --focus-border: rgba(10, 132, 255, 0.65);
+  --focus-ring: rgba(10, 132, 255, 0.22);
+  --auth-point-bg: #1C1C1E;
+  --auth-point-border: rgba(84, 84, 88, 0.65);
+  --auth-input-bg: #2C2C2E;
+  --inline-code-bg: rgba(10, 132, 255, 0.18);
+  --reception-panel-bg: linear-gradient(180deg, #2C2C2E 0%, #1C1C1E 100%);
+  --reception-panel-border: rgba(84, 84, 88, 0.65);
+  --analysis-chip-bg: rgba(10, 132, 255, 0.14);
+  --analysis-chip-border: rgba(10, 132, 255, 0.24);
+  --analysis-chip-growth-bg: rgba(255, 159, 10, 0.14);
+  --analysis-chip-growth-border: rgba(255, 159, 10, 0.28);
+  --analysis-card-bg: #2C2C2E;
+  --analysis-alt-ink: #FFFFFF;
+  --analysis-growth-bg: var(--analysis-chip-growth-bg);
+  --analysis-growth-border: var(--analysis-chip-growth-border);
+  --alt-card-bg: #2C2C2E;
+  --alt-card-border: rgba(84, 84, 88, 0.65);
+  --alt-reply-ink: #FFFFFF;
+  --rubric-track-bg: rgba(10, 132, 255, 0.18);
+  --rubric-tone-high: #0A84FF;
+  --label-strong-ink: #FFFFFF;
+  --notebook-spine-knob: #636366;
+  --new-reception-panel: var(--reception-panel-bg);
+  --new-reception-panel-border: var(--reception-panel-border);
+}
+
+/* iOS themes — neutralize rose hardcodes */
+html[data-theme='ios-light'] .app-shell,
+html[data-theme='ios-light'] .notebook-shell,
+html[data-theme='ios-dark'] .app-shell,
+html[data-theme='ios-dark'] .notebook-shell {
+  background:
+    radial-gradient(900px 500px at 10% -10%, var(--shell-wash-a), transparent 55%),
+    radial-gradient(700px 420px at 95% 0%, var(--shell-wash-b), transparent 50%),
+    var(--md-sys-color-surface);
+}
+
+html[data-theme='ios-light'] .auth-points li,
+html[data-theme='ios-dark'] .auth-points li {
+  background: var(--auth-point-bg);
+  border-color: var(--auth-point-border);
+}
+
+html[data-theme='ios-light'] .auth-field input,
+html[data-theme='ios-dark'] .auth-field input {
+  background: var(--auth-input-bg);
+}
+
+html[data-theme='ios-light'] .auth-field input:focus,
+html[data-theme='ios-dark'] .auth-field input:focus {
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+html[data-theme='ios-light'] .auth-hint code,
+html[data-theme='ios-dark'] .auth-hint code {
+  background: var(--inline-code-bg);
+}
+
+html[data-theme='ios-light'] .new-reception-panel,
+html[data-theme='ios-dark'] .new-reception-panel {
+  background: var(--reception-panel-bg);
+  border-color: var(--reception-panel-border);
+}
+
+html[data-theme='ios-light'] .analysis-generating-ring,
+html[data-theme='ios-dark'] .analysis-generating-ring {
+  border-color: color-mix(in srgb, var(--md-sys-color-primary) 35%, transparent);
+}
+
+html[data-theme='ios-light'] .analysis-md h2,
+html[data-theme='ios-dark'] .analysis-md h2 {
+  color: var(--md-sys-color-primary);
+}
+
+html[data-theme='ios-light'] .analysis-md code,
+html[data-theme='ios-light'] .rubric-track,
+html[data-theme='ios-dark'] .analysis-md code,
+html[data-theme='ios-dark'] .rubric-track {
+  background: var(--rubric-track-bg);
+}
+
+html[data-theme='ios-light'] .rubric-row,
+html[data-theme='ios-dark'] .rubric-row {
+  border-color: var(--line-tint);
+}
+
+html[data-theme='ios-light'] .analysis-chip-list li,
+html[data-theme='ios-dark'] .analysis-chip-list li {
+  background: var(--analysis-chip-bg);
+  border-color: var(--analysis-chip-border);
+}
+
+html[data-theme='ios-light'] .analysis-chip-list.growth li,
+html[data-theme='ios-dark'] .analysis-chip-list.growth li {
+  background: var(--analysis-chip-growth-bg);
+  border-color: var(--analysis-chip-growth-border);
+}
+
+html[data-theme='ios-light'] .alt-card,
+html[data-theme='ios-dark'] .alt-card {
+  background: var(--analysis-card-bg);
+  border-color: var(--alt-card-border);
+}
+
+html[data-theme='ios-light'] .alt-block.alt p,
+html[data-theme='ios-dark'] .alt-block.alt p {
+  color: var(--analysis-alt-ink);
+}
+
+html[data-theme='ios-light'] .rubric-row.tone-high .rubric-value,
+html[data-theme='ios-dark'] .rubric-row.tone-high .rubric-value {
+  color: var(--rubric-tone-high);
+}
+
+html[data-theme='ios-light'] .alt-why,
+html[data-theme='ios-dark'] .alt-why {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+html[data-theme='ios-dark'] .session-entry-badge:not(.live):not(.paused):not(.analysis) {
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+html[data-theme='ios-dark'] .session-meta-chip,
+html[data-theme='ios-dark'] .tag {
+  background: rgba(142, 142, 147, 0.24);
+  color: #F2F2F7;
+}
+
+html[data-theme='ios-dark'] .bookmark:not(.active).bookmark-rose,
+html[data-theme='ios-dark'] .bookmark:not(.active).bookmark-pink {
+  color: var(--md-sys-color-on-surface);
+}
+
+
+html[data-theme='ios-light'] .bookmark:hover,
+html[data-theme='ios-dark'] .bookmark:hover {
+  box-shadow: 0 -6px 14px var(--shadow-rose);
+}
+
+html[data-theme='ios-light'] .bookmark.active,
+html[data-theme='ios-dark'] .bookmark.active {
+  box-shadow: 0 -2px 8px var(--shadow-rose-soft);
+}
+
+html[data-theme='ios-light'] .side-bookmark,
+html[data-theme='ios-dark'] .side-bookmark {
+  box-shadow:
+    0 0 0 1px var(--shadow-rose-soft),
+    4px 6px 14px var(--shadow-rose);
+}
+
+@media (max-width: 900px) {
+  html[data-theme='ios-light'] .session-split.with-supervisor .supervisor-side,
+  html[data-theme='ios-dark'] .session-split.with-supervisor .supervisor-side {
+    box-shadow: 0 16px 40px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='ios-light'] .notebook-shell,
+  html[data-theme='ios-dark'] .notebook-shell {
+    background:
+      radial-gradient(600px 320px at 0% -10%, var(--shell-wash-a), transparent 55%),
+      var(--md-sys-color-surface);
+  }
+
+  /* Mobile tab bar is transparent glass — no opaque theme shadows */
+  html[data-theme='ios-light'] .bookmark,
+  html[data-theme='ios-dark'] .bookmark,
+  html[data-theme='ios-light'] .bookmark:hover,
+  html[data-theme='ios-dark'] .bookmark:hover,
+  html[data-theme='ios-light'] .bookmark.active,
+  html[data-theme='ios-dark'] .bookmark.active {
+    box-shadow: none;
+  }
+
+  html[data-theme='ios-light'] .notebook.session-mode.notes-open .page-left,
+  html[data-theme='ios-dark'] .notebook.session-mode.notes-open .page-left {
+    box-shadow: 0 12px 40px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='ios-light'] .side-bookmark,
+  html[data-theme='ios-dark'] .side-bookmark {
+    box-shadow:
+      0 0 0 1px var(--shadow-rose-soft),
+      -4px 6px 14px var(--shadow-rose);
+  }
+
+  html[data-theme='ios-light'] .side-bookmark:hover,
+  html[data-theme='ios-dark'] .side-bookmark:hover {
+    box-shadow: -6px 8px 16px var(--shadow-rose-strong);
+  }
+
+  html[data-theme='ios-light'] .side-bookmark.active,
+  html[data-theme='ios-dark'] .side-bookmark.active {
+    box-shadow: -2px 4px 10px var(--shadow-rose-soft);
+  }
+}
