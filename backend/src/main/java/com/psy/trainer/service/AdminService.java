@@ -2,8 +2,10 @@ package com.psy.trainer.service;
 
 import com.psy.trainer.domain.AppRole;
 import com.psy.trainer.domain.AppUser;
+import com.psy.trainer.domain.TherapistProfile;
 import com.psy.trainer.llm.RouterAiClient;
 import com.psy.trainer.repo.AppUserRepository;
+import com.psy.trainer.repo.TherapistProfileRepository;
 import com.psy.trainer.web.dto.Dtos;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AdminService {
@@ -24,7 +27,9 @@ public class AdminService {
     private final PromptStore promptStore;
     private final LlmUsageService llmUsageService;
     private final AppUserRepository appUserRepository;
+    private final TherapistProfileRepository therapistProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserBalanceService userBalanceService;
 
     public AdminService(
             RouterAiClient routerAiClient,
@@ -32,14 +37,18 @@ public class AdminService {
             PromptStore promptStore,
             LlmUsageService llmUsageService,
             AppUserRepository appUserRepository,
-            PasswordEncoder passwordEncoder
+            TherapistProfileRepository therapistProfileRepository,
+            PasswordEncoder passwordEncoder,
+            UserBalanceService userBalanceService
     ) {
         this.routerAiClient = routerAiClient;
         this.runtimeConfigService = runtimeConfigService;
         this.promptStore = promptStore;
         this.llmUsageService = llmUsageService;
         this.appUserRepository = appUserRepository;
+        this.therapistProfileRepository = therapistProfileRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userBalanceService = userBalanceService;
     }
 
     public Dtos.AdminOverviewResponse overview() {
@@ -134,7 +143,45 @@ public class AdminService {
             String model,
             String source
     ) {
+        return usage(from, to, model, source, null);
+    }
+
+    public Dtos.AdminUsageStatsResponse usage(
+            java.time.Instant from,
+            java.time.Instant to,
+            String model,
+            String source,
+            java.util.UUID therapistId
+    ) {
+        if (therapistId != null) {
+            return llmUsageService.statsForTherapist(resolveTherapistProfileId(therapistId), from, to, model, source);
+        }
         return llmUsageService.stats(from, to, model, source);
+    }
+
+    /**
+     * Admin UI may pass either {@code therapist_profile.id} (from usage.byUser)
+     * or {@code app_user.id} (from /admin/users). LLM usage is keyed by profile id;
+     * JWT {@code sub} is app_user.id and becomes therapist_profile.auth_sub.
+     */
+    private UUID resolveTherapistProfileId(UUID id) {
+        if (therapistProfileRepository.findById(id).isPresent()) {
+            return id;
+        }
+        var byAuthSub = therapistProfileRepository.findByAuthSub(id.toString());
+        if (byAuthSub.isPresent()) {
+            return byAuthSub.get().getId();
+        }
+        return appUserRepository.findById(id).flatMap(user -> {
+            var byUserId = therapistProfileRepository.findByAuthSub(user.getId().toString());
+            if (byUserId.isPresent()) {
+                return byUserId;
+            }
+            if (user.getUsername() != null && !user.getUsername().isBlank()) {
+                return therapistProfileRepository.findByAuthSub(user.getUsername());
+            }
+            return java.util.Optional.<TherapistProfile>empty();
+        }).map(TherapistProfile::getId).orElse(id);
     }
 
     @Transactional(readOnly = true)
@@ -177,6 +224,34 @@ public class AdminService {
         return toUserResponse(created);
     }
 
+    @Transactional
+    public Dtos.AppUserResponse topUpUser(UUID userId, Dtos.TopUpBalanceRequest request) {
+        if (userId == null) {
+            throw new BadRequestException("Не указан пользователь");
+        }
+        if (request == null) {
+            throw new BadRequestException("Пустой запрос");
+        }
+        AppUser updated = userBalanceService.credit(userId, request.amountRub());
+        return toUserResponse(updated);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Dtos.BalanceTopUpResponse> topUpHistory() {
+        return userBalanceService.recentTopUps();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Dtos.BalanceTopUpResponse> userTopUpHistory(UUID userId) {
+        if (userId == null) {
+            throw new BadRequestException("Не указан пользователь");
+        }
+        if (!appUserRepository.existsById(userId)) {
+            throw new NotFoundException("Пользователь не найден");
+        }
+        return userBalanceService.topUpsForUser(userId);
+    }
+
     private Dtos.AppUserResponse toUserResponse(AppUser u) {
         return new Dtos.AppUserResponse(
                 u.getId().toString(),
@@ -184,7 +259,8 @@ public class AdminService {
                 u.getEmail(),
                 u.getDisplayName(),
                 u.isEnabled(),
-                u.roleSet().stream().map(Enum::name).sorted().toList()
+                u.roleSet().stream().map(Enum::name).sorted().toList(),
+                u.getBalanceRub()
         );
     }
 

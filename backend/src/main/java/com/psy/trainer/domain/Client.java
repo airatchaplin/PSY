@@ -115,6 +115,30 @@ public class Client {
         this.updatedAt = Instant.now();
     }
 
+    /** Fill fields after LLM persona generation (client row already exists for usage attribution). */
+    public void applyGeneratedPersona(
+            String name,
+            int age,
+            ClientGender gender,
+            String presentingRequest,
+            Difficulty difficulty,
+            String[] behaviorTags,
+            String[] defenses,
+            String personaJson,
+            String coreProblem
+    ) {
+        this.name = name;
+        this.age = age;
+        this.gender = gender;
+        this.presentingRequest = presentingRequest;
+        this.difficulty = difficulty;
+        this.behaviorTags = behaviorTags;
+        this.defenses = defenses;
+        this.personaJson = personaJson;
+        this.coreProblem = coreProblem != null && !coreProblem.isBlank() ? coreProblem : presentingRequest;
+        this.updatedAt = Instant.now();
+    }
+
     public UUID getId() {
         return id;
     }

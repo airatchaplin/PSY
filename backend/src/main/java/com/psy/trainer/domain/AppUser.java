@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -40,6 +41,9 @@ public class AppUser {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(name = "balance_rub", nullable = false, precision = 14, scale = 4)
+    private BigDecimal balanceRub = BigDecimal.ZERO;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -58,6 +62,7 @@ public class AppUser {
         u.email = email;
         u.roles = roles.stream().map(Enum::name).sorted().toList();
         u.enabled = true;
+        u.balanceRub = BigDecimal.ZERO;
         u.createdAt = Instant.now();
         return u;
     }
@@ -121,6 +126,14 @@ public class AppUser {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public BigDecimal getBalanceRub() {
+        return balanceRub == null ? BigDecimal.ZERO : balanceRub;
+    }
+
+    public void setBalanceRub(BigDecimal balanceRub) {
+        this.balanceRub = balanceRub == null ? BigDecimal.ZERO : balanceRub;
     }
 
     public Instant getCreatedAt() {

@@ -203,6 +203,43 @@ html[data-theme='rose'] {
   --sticky-shadow: color-mix(in srgb, var(--md-sys-color-inverse-surface) 18%, transparent);
   --sticky-shadow-soft: color-mix(in srgb, var(--md-sys-color-inverse-surface) 14%, transparent);
   --sticky-shadow-faint: color-mix(in srgb, var(--md-sys-color-inverse-surface) 8%, transparent);
+
+  /* Modal sheet (case start / balance top-up) */
+  --modal-scrim: color-mix(in srgb, #3e2036 42%, transparent);
+  --modal-scrim-blur: 10px;
+  --modal-card-bg: linear-gradient(180deg, #fffdfb 0%, #fff6f0 100%);
+  --modal-card-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --modal-card-shadow:
+    0 18px 42px rgba(62, 32, 54, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --modal-card-radius: 18px;
+
+  /* Admin balance / usage cards */
+  --admin-stat-bg: linear-gradient(180deg, #fffafc, #fff3f8);
+  --admin-stat-border: rgba(142, 58, 116, 0.1);
+  --admin-stat-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --admin-stat-radius: 14px;
+  --admin-meter-fill: linear-gradient(90deg, #6fc296, #b5a6f0);
+  --usage-metric-bg: #fff;
+  --usage-metric-border: rgba(62, 32, 54, 0.08);
+  --usage-metric-shadow: 0 1px 2px rgba(62, 32, 54, 0.04);
+  --usage-metric-radius: 16px;
+  --usage-metric-icon: #8e3a74;
+  --admin-prompt-editor-bg: linear-gradient(180deg, #fffdfb 0%, #fff8f4 100%);
+
+  /* Model picker */
+  --model-picker-bg: #fffafc;
+  --model-picker-border: rgba(142, 58, 116, 0.12);
+  --model-picker-radius: 14px;
+  --model-item-bg: #fff3f8;
+  --model-item-border: rgba(142, 58, 116, 0.1);
+  --model-item-radius: 12px;
+  --model-item-hover-bg: #ffe8f2;
+  --model-item-selected-bg: #f3d6e8;
+  --model-item-selected-border: #8e3a74;
+  --model-chip-bg: #ffffff;
+  --model-chip-border: rgba(142, 58, 116, 0.14);
+  --model-chip-ink: #8e3a74;
 }
 
 html[data-theme='masculine'] {
@@ -1962,4 +1999,225 @@ html[data-theme='ios-dark'] .side-bookmark {
   html[data-theme='ios-dark'] .side-bookmark.active {
     box-shadow: -2px 4px 10px var(--shadow-rose-soft);
   }
+}
+
+/* ——— Modal sheets per theme ——— */
+html[data-theme='masculine'] {
+  --modal-scrim: color-mix(in srgb, #1b262c 48%, transparent);
+  --modal-scrim-blur: 6px;
+  --modal-card-bg: linear-gradient(180deg, #f7f9fb 0%, #e8eef2 100%);
+  --modal-card-border: color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  --modal-card-shadow:
+    0 16px 36px rgba(27, 38, 44, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --modal-card-radius: 12px;
+  --new-reception-panel: var(--reception-panel-bg, linear-gradient(180deg, #f7f9fb, #e8eef2));
+  --new-reception-panel-border: var(--reception-panel-border, color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent));
+  --admin-stat-bg: linear-gradient(180deg, #f4f7f5 0%, #e4ece7 100%);
+  --admin-stat-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --admin-stat-radius: 10px;
+  --admin-meter-fill: linear-gradient(90deg, #84a98c, #52796f);
+  --usage-metric-bg: #f7f9fb;
+  --usage-metric-border: color-mix(in srgb, var(--md-sys-color-outline) 20%, transparent);
+  --usage-metric-radius: 12px;
+  --usage-metric-icon: #52796f;
+  --admin-prompt-editor-bg: linear-gradient(180deg, #f7f9fb 0%, #eef3f6 100%);
+  --model-picker-bg: #f7f9fb;
+  --model-picker-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --model-picker-radius: 10px;
+  --model-item-bg: #eef3f0;
+  --model-item-border: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --model-item-radius: 8px;
+  --model-item-hover-bg: #e4ebe6;
+  --model-item-selected-bg: #d7e5db;
+  --model-item-selected-border: #2f3e46;
+  --model-chip-bg: #ffffff;
+  --model-chip-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --model-chip-ink: #2f3e46;
+}
+
+html[data-theme='feminine'] {
+  --modal-scrim: color-mix(in srgb, #6b3144 40%, transparent);
+  --modal-scrim-blur: 12px;
+  --modal-card-bg: linear-gradient(180deg, #fff8f5 0%, #ffe8df 100%);
+  --modal-card-border: color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  --modal-card-shadow:
+    0 20px 44px rgba(107, 49, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --modal-card-radius: 22px;
+  --new-reception-panel: linear-gradient(180deg, #fff8f5 0%, #ffe8df 100%);
+  --new-reception-panel-border: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --admin-stat-bg: linear-gradient(180deg, #fff8f5 0%, #ffe9e0 100%);
+  --admin-stat-border: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --admin-stat-radius: 18px;
+  --admin-meter-fill: linear-gradient(90deg, #e8a0b4, #c45c7a);
+  --usage-metric-bg: #fffaf8;
+  --usage-metric-border: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --usage-metric-radius: 18px;
+  --usage-metric-icon: #c45c7a;
+  --admin-prompt-editor-bg: linear-gradient(180deg, #fffaf8 0%, #fff1eb 100%);
+  --model-picker-bg: #fffaf8;
+  --model-picker-border: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  --model-picker-radius: 18px;
+  --model-item-bg: #fff1eb;
+  --model-item-border: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  --model-item-radius: 14px;
+  --model-item-hover-bg: #ffe4da;
+  --model-item-selected-bg: #f7d0c4;
+  --model-item-selected-border: #c45c7a;
+  --model-chip-bg: #ffffff;
+  --model-chip-border: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  --model-chip-ink: #c45c7a;
+}
+
+html[data-theme='white'] {
+  --modal-scrim: color-mix(in srgb, #2d3436 36%, transparent);
+  --modal-scrim-blur: 8px;
+  --modal-card-bg: linear-gradient(180deg, #ffffff 0%, #f5f6f7 100%);
+  --modal-card-border: color-mix(in srgb, var(--md-sys-color-outline) 22%, transparent);
+  --modal-card-shadow:
+    0 14px 32px rgba(45, 52, 54, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --modal-card-radius: 14px;
+  --new-reception-panel: linear-gradient(180deg, #ffffff 0%, #f5f6f7 100%);
+  --new-reception-panel-border: color-mix(in srgb, var(--md-sys-color-outline) 18%, transparent);
+  --admin-stat-bg: #ffffff;
+  --admin-stat-border: rgba(45, 52, 54, 0.1);
+  --admin-stat-radius: 12px;
+  --admin-meter-fill: linear-gradient(90deg, #636e72, #2d3436);
+  --usage-metric-bg: #ffffff;
+  --usage-metric-border: rgba(45, 52, 54, 0.1);
+  --usage-metric-radius: 12px;
+  --usage-metric-icon: #2d3436;
+  --admin-prompt-editor-bg: #ffffff;
+  --model-picker-bg: #ffffff;
+  --model-picker-border: rgba(45, 52, 54, 0.12);
+  --model-picker-radius: 12px;
+  --model-item-bg: #f5f6f7;
+  --model-item-border: rgba(45, 52, 54, 0.1);
+  --model-item-radius: 10px;
+  --model-item-hover-bg: #eceff0;
+  --model-item-selected-bg: #e1e5e6;
+  --model-item-selected-border: #2d3436;
+  --model-chip-bg: #ffffff;
+  --model-chip-border: rgba(45, 52, 54, 0.14);
+  --model-chip-ink: #2d3436;
+}
+
+html[data-theme='black'] {
+  --modal-scrim: color-mix(in srgb, #000 62%, transparent);
+  --modal-scrim-blur: 14px;
+  --modal-card-bg: linear-gradient(180deg, #1c1f24 0%, #14171b 100%);
+  --modal-card-border: color-mix(in srgb, var(--md-sys-color-outline) 34%, transparent);
+  --modal-card-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(197, 204, 212, 0.12);
+  --modal-card-radius: 16px;
+  --admin-stat-bg: linear-gradient(180deg, #22262b 0%, #181b1f 100%);
+  --admin-stat-border: rgba(197, 204, 212, 0.16);
+  --admin-stat-shadow: inset 0 1px 0 rgba(197, 204, 212, 0.08);
+  --admin-stat-radius: 14px;
+  --admin-meter-fill: linear-gradient(90deg, #8b93a0, #c5ccd4);
+  --usage-metric-bg: #1c1f24;
+  --usage-metric-border: rgba(197, 204, 212, 0.14);
+  --usage-metric-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --usage-metric-radius: 14px;
+  --usage-metric-icon: #c5ccd4;
+  --admin-prompt-editor-bg: linear-gradient(180deg, #1c1f24 0%, #14171b 100%);
+  --model-picker-bg: #181b1f;
+  --model-picker-border: rgba(197, 204, 212, 0.16);
+  --model-picker-radius: 14px;
+  --model-item-bg: #22262b;
+  --model-item-border: rgba(197, 204, 212, 0.14);
+  --model-item-radius: 12px;
+  --model-item-hover-bg: #2a2f35;
+  --model-item-selected-bg: #30363d;
+  --model-item-selected-border: #c5ccd4;
+  --model-chip-bg: #14171b;
+  --model-chip-border: rgba(197, 204, 212, 0.2);
+  --model-chip-ink: #e8ecf0;
+}
+
+html[data-theme='ios-light'] {
+  --modal-scrim: color-mix(in srgb, #000 28%, transparent);
+  --modal-scrim-blur: 18px;
+  --modal-card-bg: #ffffff;
+  --modal-card-border: rgba(60, 60, 67, 0.12);
+  --modal-card-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.9);
+  --modal-card-radius: 16px;
+  --admin-stat-bg: #ffffff;
+  --admin-stat-border: rgba(60, 60, 67, 0.1);
+  --admin-stat-radius: 14px;
+  --admin-meter-fill: linear-gradient(90deg, #5ac8fa, #007aff);
+  --usage-metric-bg: #ffffff;
+  --usage-metric-border: rgba(60, 60, 67, 0.1);
+  --usage-metric-radius: 14px;
+  --usage-metric-icon: #007aff;
+  --admin-prompt-editor-bg: #ffffff;
+  --model-picker-bg: #f2f2f7;
+  --model-picker-border: rgba(60, 60, 67, 0.12);
+  --model-picker-radius: 14px;
+  --model-item-bg: #ffffff;
+  --model-item-border: rgba(60, 60, 67, 0.1);
+  --model-item-radius: 12px;
+  --model-item-hover-bg: #f2f2f7;
+  --model-item-selected-bg: rgba(0, 122, 255, 0.12);
+  --model-item-selected-border: #007aff;
+  --model-chip-bg: #f2f2f7;
+  --model-chip-border: rgba(60, 60, 67, 0.12);
+  --model-chip-ink: #007aff;
+}
+
+html[data-theme='ios-dark'] {
+  --modal-scrim: color-mix(in srgb, #000 55%, transparent);
+  --modal-scrim-blur: 22px;
+  --modal-card-bg: #2c2c2e;
+  --modal-card-border: rgba(84, 84, 88, 0.55);
+  --modal-card-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.5),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+  --modal-card-radius: 16px;
+  --admin-stat-bg: #1c1c1e;
+  --admin-stat-border: rgba(84, 84, 88, 0.45);
+  --admin-stat-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  --admin-stat-radius: 14px;
+  --admin-meter-fill: linear-gradient(90deg, #64d2ff, #0a84ff);
+  --usage-metric-bg: #1c1c1e;
+  --usage-metric-border: rgba(84, 84, 88, 0.45);
+  --usage-metric-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --usage-metric-radius: 14px;
+  --usage-metric-icon: #0a84ff;
+  --admin-prompt-editor-bg: #1c1c1e;
+  --model-picker-bg: #1c1c1e;
+  --model-picker-border: rgba(84, 84, 88, 0.45);
+  --model-picker-radius: 14px;
+  --model-item-bg: #2c2c2e;
+  --model-item-border: rgba(84, 84, 88, 0.4);
+  --model-item-radius: 12px;
+  --model-item-hover-bg: #3a3a3c;
+  --model-item-selected-bg: rgba(10, 132, 255, 0.22);
+  --model-item-selected-border: #0a84ff;
+  --model-chip-bg: #1c1c1e;
+  --model-chip-border: rgba(84, 84, 88, 0.5);
+  --model-chip-ink: #0a84ff;
+}
+
+html[data-theme='black'] .case-start-card .section-label,
+html[data-theme='ios-dark'] .case-start-card .section-label {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 62%, transparent);
+}
+
+html[data-theme='masculine'] .case-start-seg button {
+  border-radius: 10px;
+}
+
+html[data-theme='feminine'] .case-start-seg button {
+  border-radius: 999px;
+}
+
+html[data-theme='ios-light'] .case-start-seg button,
+html[data-theme='ios-dark'] .case-start-seg button {
+  border-radius: 10px;
 }

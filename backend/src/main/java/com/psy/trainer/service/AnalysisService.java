@@ -10,7 +10,9 @@ import com.psy.trainer.domain.SessionAnalysis;
 import com.psy.trainer.domain.SessionStatus;
 import com.psy.trainer.domain.TherapistProfile;
 import com.psy.trainer.domain.TherapySession;
+import com.psy.trainer.llm.LlmCallContext;
 import com.psy.trainer.llm.LlmClient;
+import com.psy.trainer.llm.LlmUsageContext;
 import com.psy.trainer.rag.RagService;
 import com.psy.trainer.repo.ClientRepository;
 import com.psy.trainer.repo.MessageRepository;
@@ -117,6 +119,25 @@ public class AnalysisService {
                 all.toString(), "Глобальный анализ практики терапевта");
     }
 
+    @Transactional(readOnly = true)
+    public List<Dtos.AnalysisResponse> listGlobalAnalyses() {
+        TherapistProfile therapist = currentTherapistService.requireCurrent();
+        return analysisRepository
+                .findByTherapistIdAndScopeOrderByCreatedAtDesc(therapist.getId(), AnalysisScope.GLOBAL)
+                .stream()
+                .map(mapper::toAnalysis)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Dtos.AnalysisResponse getGlobalAnalysis(UUID id) {
+        TherapistProfile therapist = currentTherapistService.requireCurrent();
+        return analysisRepository
+                .findByIdAndTherapistIdAndScope(id, therapist.getId(), AnalysisScope.GLOBAL)
+                .map(mapper::toAnalysis)
+                .orElseThrow(() -> new NotFoundException("Анализ тетради не найден"));
+    }
+
     private Dtos.AnalysisResponse persist(
             TherapistProfile therapist,
             UUID clientId,
@@ -125,18 +146,35 @@ public class AnalysisService {
             String transcript,
             String task
     ) {
-        String knowledge = ragService.retrieveGestaltKnowledge(task + "\n" + transcript, 5);
-        String raw = llmClient.chatJson(List.of(
-                LlmClient.ChatMessage.system(promptLoader.load("analysis-system.txt")),
-                LlmClient.ChatMessage.user(task + "\n\nМатериалы:\n" + knowledge + "\n\nТранскрипт:\n" + transcript)
-        ));
+        String purpose = switch (scope) {
+            case SESSION -> "analysis_session";
+            case CLIENT -> "analysis_client";
+            case GLOBAL -> "analysis_global";
+        };
+        UUID analysisId = UUID.randomUUID();
+        LlmCallContext usageCtx = LlmCallContext.of(purpose, clientId, sessionId, analysisId);
+        String raw = LlmUsageContext.call(usageCtx, () -> {
+            String knowledge = ragService.retrieveGestaltKnowledge(task + "\n" + transcript, 5);
+            return llmClient.chatJson(List.of(
+                    LlmClient.ChatMessage.system(promptLoader.load("analysis-system.txt")),
+                    LlmClient.ChatMessage.user(task + "\n\nМатериалы:\n" + knowledge + "\n\nТранскрипт:\n" + transcript)
+            ), usageCtx);
+        });
         try {
             JsonNode node = objectMapper.readTree(extractJson(raw));
             String report = node.path("reportMd").asText("Отчёт недоступен");
             String rubric = objectMapper.writeValueAsString(mergeRubric(node));
             String alternatives = objectMapper.writeValueAsString(node.path("alternativeReplies"));
             SessionAnalysis saved = analysisRepository.save(SessionAnalysis.create(
-                    therapist.getId(), clientId, sessionId, scope, report, rubric, alternatives));
+                    analysisId,
+                    therapist.getId(),
+                    clientId,
+                    sessionId,
+                    scope,
+                    report,
+                    rubric,
+                    alternatives
+            ));
             return mapper.toAnalysis(saved);
         } catch (Exception e) {
             throw new BadRequestException("Не удалось разобрать анализ: " + e.getMessage());

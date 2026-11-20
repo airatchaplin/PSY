@@ -4,12 +4,19 @@ export type AdminSection = 'connection' | 'balance' | 'models' | 'usage' | 'prom
 
 const STORAGE_KEY = 'psy.adminSection'
 
-const SECTIONS: AdminSection[] = ['connection', 'balance', 'models', 'usage', 'prompts', 'users']
+export const ADMIN_SECTIONS: AdminSection[] = [
+  'connection',
+  'balance',
+  'models',
+  'usage',
+  'prompts',
+  'users'
+]
 
 function readStored(): AdminSection {
   if (typeof sessionStorage === 'undefined') return 'connection'
   const v = sessionStorage.getItem(STORAGE_KEY)
-  return SECTIONS.includes(v as AdminSection) ? (v as AdminSection) : 'connection'
+  return ADMIN_SECTIONS.includes(v as AdminSection) ? (v as AdminSection) : 'connection'
 }
 
 export const adminSection = ref<AdminSection>(readStored())
@@ -21,6 +28,15 @@ watch(adminSection, section => {
 
 export function setAdminSection(section: AdminSection) {
   adminSection.value = section
+}
+
+/** Mobile swipe: -1 previous, +1 next. Returns false at edges. */
+export function shiftAdminMobilePage(delta: -1 | 1): boolean {
+  const idx = ADMIN_SECTIONS.indexOf(adminSection.value)
+  const next = idx + delta
+  if (next < 0 || next >= ADMIN_SECTIONS.length) return false
+  adminSection.value = ADMIN_SECTIONS[next]
+  return true
 }
 
 export const adminNavItems: { id: AdminSection; label: string; icon: string }[] = [

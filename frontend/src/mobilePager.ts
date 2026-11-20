@@ -1,3 +1,4 @@
+import { shiftAdminMobilePage } from './adminUi'
 import {
   casesMobileTab,
   setCasesMobileTab,
@@ -8,11 +9,14 @@ import {
   setProgressMobileTab,
   type ProgressMobileTab
 } from './progressUi'
+import { shiftSettingsMobilePage } from './settingsUi'
 import {
   isMobileUi,
   sessionLeftPanel,
   type SessionLeftPanel
 } from './sessionUi'
+
+export { shiftAdminMobilePage, shiftSettingsMobilePage }
 
 /** Chat mobile pages left → right (iOS home-screen order). */
 export const CHAT_MOBILE_PAGES = ['clients', 'chat', 'notes', 'sessions'] as const
@@ -60,7 +64,8 @@ export function shiftCasesMobilePage(delta: -1 | 1): boolean {
 }
 
 export function shiftProgressMobilePage(delta: -1 | 1): boolean {
-  const order: ProgressMobileTab[] = ['clients', 'stats']
+  // Left → right: Статистика, then Анализы (matches first-visit default).
+  const order: ProgressMobileTab[] = ['stats', 'clients']
   const idx = order.indexOf(progressMobileTab.value)
   const next = idx + delta
   if (next < 0 || next >= order.length) return false

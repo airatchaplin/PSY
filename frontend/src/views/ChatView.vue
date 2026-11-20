@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import AnalysisReport from '../components/AnalysisReport.vue'
 import { difficultyLabel, genderLabel, tagCode, tagLabel } from '../labels'
+import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
+import { newId } from '../id'
+import { llmAllowed, setMeProfile } from '../meProfile'
 import {
   analysisPanelOpen,
   closeLeftPanelOnMobile,
@@ -16,11 +19,14 @@ import {
   resetSessionUi,
   reviewingSessionId,
   sessionsPanelOpen,
-  setLiveTimerState
+  setLiveTimerState,
+  clearPendingSessionReview,
+  peekPendingSessionReview
 } from '../sessionUi'
 import type { Analysis, Client, Message, Note, SessionSummary } from '../types'
 
 const props = defineProps<{ id: string }>()
+const route = useRoute()
 const router = useRouter()
 
 const client = ref<Client | null>(null)
@@ -38,6 +44,14 @@ const chatInputEl = ref<HTMLTextAreaElement | null>(null)
 const noteInputEl = ref<HTMLTextAreaElement | null>(null)
 const supervisorInputEl = ref<HTMLTextAreaElement | null>(null)
 const busy = ref(false)
+
+async function refreshBalance() {
+  try {
+    setMeProfile(await api.me())
+  } catch {
+    /* ignore */
+  }
+}
 
 function resizeComposer(el: HTMLTextAreaElement | null | undefined) {
   if (!el) return
@@ -157,6 +171,45 @@ function sessionNumber(id: string) {
 const displayMessages = computed(() =>
   isReviewing.value ? sessionMessages.value : allMessages.value
 )
+/** Hide live transcript until Usage deep-link review is applied. */
+const chatHydrating = ref(false)
+/** Deep-link asked for analysis panel — keep it open through hydrate. */
+const deepLinkAnalysis = ref(false)
+
+function peekDeepLinkSessionId(): string | null {
+  const pending = peekPendingSessionReview()
+  if (pending?.sessionId) return pending.sessionId
+  const q = route.query.session
+  return typeof q === 'string' && q ? q : null
+}
+
+function peekDeepLinkWantsAnalysis(): boolean {
+  const pending = peekPendingSessionReview()
+  if (pending?.openAnalysis) return true
+  return typeof route.query.view === 'string' && route.query.view === 'analysis'
+}
+
+/** Set review mode synchronously so the first paint never shows the live chat. */
+function primeDeepLinkReview(): boolean {
+  const sid = peekDeepLinkSessionId()
+  if (!sid) {
+    chatHydrating.value = false
+    deepLinkAnalysis.value = false
+    return false
+  }
+  reviewingSessionId.value = sid
+  sessionMessages.value = []
+  analysis.value = null
+  chatHydrating.value = true
+  deepLinkAnalysis.value = peekDeepLinkWantsAnalysis()
+  panelTransitionEnabled.value = false
+  if (deepLinkAnalysis.value) {
+    openAnalysisPanel()
+  }
+  return true
+}
+
+primeDeepLinkReview()
 const canAnalyzeReviewed = computed(() =>
   !!reviewedSession.value
   && reviewedSession.value.status === 'CLOSED'
@@ -258,48 +311,59 @@ async function loadSessions() {
   sessions.value = await api.sessions(props.id)
 }
 
-async function loadAnalysisFor(sessionId: string | null) {
+async function loadAnalysisFor(sessionId: string | null, options?: { force?: boolean }) {
   analysis.value = null
   if (!sessionId) return
   const meta = sessions.value.find(s => s.id === sessionId)
-  if (meta && !meta.hasAnalysis) return
+  if (!options?.force && meta && !meta.hasAnalysis) return
   try {
     analysis.value = await api.getSessionAnalysis(sessionId)
+    if (analysis.value) {
+      const idx = sessions.value.findIndex(s => s.id === sessionId)
+      if (idx >= 0) {
+        sessions.value[idx] = { ...sessions.value[idx], hasAnalysis: true }
+      }
+    }
   } catch {
     analysis.value = null
   }
 }
 
-async function openSessionReview(sessionId: string) {
+async function openSessionReview(sessionId: string, options?: { keepAnalysisPanel?: boolean }) {
   error.value = ''
   stopTimerInterval()
   reviewingSessionId.value = sessionId
-  // Desktop: keep sessions list open. Mobile: close drawer so session chat is visible.
-  closeLeftPanelOnMobile()
-  if (typeof window !== 'undefined' && !window.matchMedia('(max-width: 900px)').matches) {
-    openSessionsPanel()
+  const keepAnalysis = !!options?.keepAnalysisPanel || deepLinkAnalysis.value
+  if (keepAnalysis) {
+    openAnalysisPanel()
+  } else {
+    // Desktop: keep sessions list open. Mobile: close drawer so session chat is visible.
+    closeLeftPanelOnMobile()
+    if (typeof window !== 'undefined' && !window.matchMedia('(max-width: 900px)').matches) {
+      openSessionsPanel()
+    }
   }
   busy.value = true
   try {
     sessionMessages.value = await api.sessionMessages(sessionId)
     const meta = sessions.value.find(s => s.id === sessionId)
-    if (meta?.hasAnalysis) {
-      await loadAnalysisFor(sessionId)
+    if (meta?.hasAnalysis || keepAnalysis) {
+      await loadAnalysisFor(sessionId, { force: keepAnalysis })
     } else {
       analysis.value = null
     }
     await scrollDown()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
   } finally {
     busy.value = false
   }
 }
 
-async function showAnalysis() {
+async function showAnalysis(options?: { force?: boolean }) {
   if (!reviewingSessionId.value) return
-  if (!analysis.value && reviewedSession.value?.hasAnalysis) {
-    await loadAnalysisFor(reviewingSessionId.value)
+  if (!analysis.value) {
+    await loadAnalysisFor(reviewingSessionId.value, { force: options?.force || reviewedSession.value?.hasAnalysis })
   }
   if (analysis.value) openAnalysisPanel()
 }
@@ -400,7 +464,7 @@ async function loadAll() {
       await router.replace('/clients')
       return
     }
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
   }
 }
 
@@ -413,6 +477,10 @@ async function startSession() {
     await backToLive()
     return
   }
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   busy.value = true
   awaitingClient.value = true
   error.value = ''
@@ -423,8 +491,10 @@ async function startSession() {
     await api.continueSession(props.id)
     await loadAll()
     await scrollDown()
+    await refreshBalance()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    await refreshBalance()
   } finally {
     awaitingClient.value = false
     busy.value = false
@@ -457,7 +527,7 @@ async function pauseTimer() {
   try {
     await api.updateTimer(activeSessionId.value, { elapsedSeconds: elapsed.value, paused: true })
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
   }
 }
 
@@ -470,7 +540,7 @@ async function resumeTimer() {
   try {
     await api.updateTimer(activeSessionId.value, { elapsedSeconds: elapsed.value, paused: false })
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
   }
 }
 
@@ -484,14 +554,18 @@ async function endSession() {
     await loadAll()
     await openSessionReview(closedId)
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
   } finally {
     busy.value = false
   }
 }
 
 async function send() {
-  if (!draft.value.trim() || therapyDone.value || isReviewing.value) return
+  if (busy.value || !draft.value.trim() || therapyDone.value || isReviewing.value) return
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   if (activeSessionId.value && timerPaused.value) {
     error.value = 'Снимите паузу кнопкой «Продолжить», чтобы продолжить разговор.'
     return
@@ -505,7 +579,7 @@ async function send() {
   resizeComposer(chatInputEl.value)
   const hadSession = !!activeSessionId.value
   allMessages.value.push({
-    id: crypto.randomUUID(),
+    id: newId(),
     sessionId: activeSessionId.value,
     clientId: props.id,
     role: 'THERAPIST',
@@ -528,8 +602,10 @@ async function send() {
       allMessages.value.push(reply)
     }
     await scrollDown()
+    await refreshBalance()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    await refreshBalance()
   } finally {
     awaitingClient.value = false
     busy.value = false
@@ -537,7 +613,11 @@ async function send() {
 }
 
 async function askSupervisor() {
-  if (!supervisorDraft.value.trim() || awaitingSupervisor.value) return
+  if (busy.value || !supervisorDraft.value.trim() || awaitingSupervisor.value) return
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   busy.value = true
   awaitingSupervisor.value = true
   try {
@@ -546,7 +626,7 @@ async function askSupervisor() {
     await nextTick()
     resizeComposer(supervisorInputEl.value)
     supervisor.value.push({
-      id: crypto.randomUUID(),
+      id: newId(),
       clientId: props.id,
       role: 'THERAPIST',
       content,
@@ -562,8 +642,10 @@ async function askSupervisor() {
     if (supervisorMessagesEl.value) {
       supervisorMessagesEl.value.scrollTop = supervisorMessagesEl.value.scrollHeight
     }
+    await refreshBalance()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    await refreshBalance()
   } finally {
     awaitingSupervisor.value = false
     busy.value = false
@@ -610,6 +692,10 @@ function toggleNotesOnScreen() {
 async function runSessionAnalysis() {
   const sid = reviewingSessionId.value
   if (!sid || !canAnalyzeReviewed.value || analyzing.value) return
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   busy.value = true
   analyzing.value = true
   error.value = ''
@@ -624,8 +710,10 @@ async function runSessionAnalysis() {
       sessions.value[idx] = { ...sessions.value[idx], hasAnalysis: true }
     }
     openAnalysisPanel()
+    await refreshBalance()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    await refreshBalance()
   } finally {
     stopAnalyzingStatusCycle()
     analyzing.value = false
@@ -633,10 +721,88 @@ async function runSessionAnalysis() {
   }
 }
 
+let deepLinkInFlight: Promise<boolean> | null = null
+
+async function applyUsageDeepLink() {
+  if (deepLinkInFlight) return deepLinkInFlight
+  deepLinkInFlight = (async () => {
+    const pending = peekPendingSessionReview()
+    const querySession = typeof route.query.session === 'string' ? route.query.session : ''
+    const sessionId = pending?.sessionId || querySession
+    const wantAnalysis =
+      !!pending?.openAnalysis
+      || (typeof route.query.view === 'string' && route.query.view === 'analysis')
+    if (!sessionId) {
+      chatHydrating.value = false
+      deepLinkAnalysis.value = false
+      panelTransitionEnabled.value = true
+      return false
+    }
+
+    // Wait until sessions are loaded; keep pending for a later retry.
+    if (!sessions.value.length) return false
+
+    const meta = sessions.value.find(s => s.id === sessionId)
+    if (!meta) {
+      // Unknown id for this client — drop pending so we don't loop.
+      clearPendingSessionReview()
+      reviewingSessionId.value = null
+      sessionMessages.value = []
+      chatHydrating.value = false
+      deepLinkAnalysis.value = false
+      panelTransitionEnabled.value = true
+      if (route.query.session || route.query.view) {
+        await router.replace({ path: route.path, query: {} })
+      }
+      return false
+    }
+
+    // Keep review id set before fetch so the live transcript never paints.
+    reviewingSessionId.value = sessionId
+    deepLinkAnalysis.value = wantAnalysis
+    await openSessionReview(sessionId, { keepAnalysisPanel: wantAnalysis })
+    if (wantAnalysis) {
+      await showAnalysis({ force: true })
+      openAnalysisPanel()
+    }
+
+    clearPendingSessionReview()
+    chatHydrating.value = false
+    deepLinkAnalysis.value = false
+    queueMicrotask(() => {
+      panelTransitionEnabled.value = true
+    })
+    if (route.query.session || route.query.view) {
+      // Query-only cleanup must not remount ChatView (App.vue keys chat by path).
+      await router.replace({ path: route.path, query: {} })
+    }
+    return true
+  })()
+  try {
+    return await deepLinkInFlight
+  } finally {
+    deepLinkInFlight = null
+  }
+}
+
 onMounted(async () => {
-  openChatSessionUi()
-  loadAll()
+  const primed = primeDeepLinkReview()
+  // Skip default layout open when Usage deep-link already primed analysis/session.
+  if (!primed) {
+    openChatSessionUi()
+  }
+  await loadAll()
+  await applyUsageDeepLink()
+  // App.vue route watch may run around mount — retry once after layout settles.
   await nextTick()
+  if (peekPendingSessionReview() || route.query.session) {
+    await applyUsageDeepLink()
+  }
+  chatHydrating.value = false
+  deepLinkAnalysis.value = false
+  queueMicrotask(() => {
+    panelTransitionEnabled.value = true
+  })
   resizeAllComposers()
 })
 
@@ -649,7 +815,12 @@ onUnmounted(() => {
   void syncTimerToBackend()
   stopTimerInterval()
   stopAnalyzingStatusCycle()
-  resetSessionUi()
+  // Keep pending review if we're navigating into chat with a deep-link still queued.
+  if (!peekPendingSessionReview()) {
+    resetSessionUi()
+  } else {
+    clearLiveTimerState()
+  }
 })
 watch(() => props.id, async (_next, prev) => {
   if (prev) await syncTimerToBackend()
@@ -659,11 +830,25 @@ watch(() => props.id, async (_next, prev) => {
   analysis.value = null
   elapsed.value = 0
   timerPaused.value = false
-  reviewingSessionId.value = null
   supervisorOpen.value = false
   clientInfoOpen.value = false
+  if (!primeDeepLinkReview()) {
+    reviewingSessionId.value = null
+    sessionMessages.value = []
+  }
   await loadAll()
+  await applyUsageDeepLink()
+  chatHydrating.value = false
 })
+
+watch(
+  () => [route.query.session, route.query.view, sessions.value.length] as const,
+  async () => {
+    if (!peekPendingSessionReview() && !route.query.session) return
+    if (!reviewingSessionId.value) primeDeepLinkReview()
+    await applyUsageDeepLink()
+  }
+)
 
 function toggleClientInfo() {
   clientInfoOpen.value = !clientInfoOpen.value
@@ -859,7 +1044,11 @@ function toggleClientInfo() {
       <div v-if="client && analysisPanelOpen" class="session-left-panel analysis-left-panel">
         <div class="book-header">
           <div>
-            <div class="left-panel-title">Анализ</div>
+            <div class="left-panel-title">
+              {{ reviewingSessionNumber != null
+                ? `Анализ сеанса №${reviewingSessionNumber}`
+                : 'Анализ сеанса' }}
+            </div>
           </div>
           <button
             class="icon-btn secondary"
@@ -872,9 +1061,6 @@ function toggleClientInfo() {
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
-        <p v-if="reviewedSession" class="left-panel-sub">
-          Сеанс {{ formatSessionDate(reviewedSession.startedAt) }}
-        </p>
         <div class="analysis-left-body" :class="{ 'is-generating': analyzing }">
           <div v-if="analyzing" class="analysis-generating" aria-live="polite" aria-busy="true">
             <div class="analysis-generating-orb" aria-hidden="true">
@@ -893,6 +1079,7 @@ function toggleClientInfo() {
             </div>
           </div>
           <AnalysisReport v-else-if="analysis" :analysis="analysis" />
+          <p v-else-if="chatHydrating" class="analysis-left-empty">Открываем анализ…</p>
           <p v-else class="analysis-left-empty">
             Анализ появится после завершения сеанса — нажмите «Получить анализ».
           </p>
@@ -916,6 +1103,11 @@ function toggleClientInfo() {
             <h2 class="page-title">
               {{ client.name }}, {{ client.age }}<template v-if="genderLabel(client.gender)"> · {{ genderLabel(client.gender) }}</template>
             </h2>
+            <span
+              v-if="activeSessionId && !isReviewing"
+              class="timer-pill"
+              :class="{ paused: timerPaused }"
+            >{{ formatTime(elapsed) }}{{ timerPaused ? ' · пауза' : '' }}</span>
           </div>
           <span class="material-symbols-outlined session-bar-chevron" aria-hidden="true">expand_more</span>
         </button>
@@ -930,14 +1122,7 @@ function toggleClientInfo() {
         </div>
       </div>
       <div class="session-bar-toolbar">
-        <div class="session-bar-timer">
-          <span
-            v-if="activeSessionId && !isReviewing"
-            class="timer-pill"
-            :class="{ paused: timerPaused }"
-          >{{ formatTime(elapsed) }}{{ timerPaused ? ' · пауза' : '' }}</span>
-        </div>
-        <div class="session-bar-actions">
+        <div class="session-bar-actions session-bar-actions-main">
           <template v-if="!isReviewing && activeSessionId">
             <button
               v-if="!timerPaused"
@@ -980,7 +1165,7 @@ function toggleClientInfo() {
             class="toolbar-btn"
             type="button"
             title="Клиент напишет первым"
-            :disabled="busy"
+            :disabled="busy || !llmAllowed"
             @click="startSession"
           >
             <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
@@ -1000,7 +1185,8 @@ function toggleClientInfo() {
             class="toolbar-btn"
             type="button"
             :class="{ analyzing: analyzing }"
-            :disabled="busy"
+            :disabled="busy || !llmAllowed"
+            :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
             @click="runSessionAnalysis"
           >
             <span
@@ -1022,6 +1208,8 @@ function toggleClientInfo() {
             <span class="material-symbols-outlined" aria-hidden="true">analytics</span>
             {{ analysisShown ? 'Скрыть' : 'Анализ' }}
           </button>
+        </div>
+        <div class="session-bar-actions session-bar-actions-side">
           <button
             class="toolbar-btn session-action-btn"
             type="button"
@@ -1087,21 +1275,24 @@ function toggleClientInfo() {
           </div>
         </div>
         <div class="messages messages-full" ref="messagesEl">
-          <div v-for="m in displayMessages" :key="m.id" class="bubble" :class="m.role">
-            <strong v-if="m.role !== 'SYSTEM'">{{ m.role === 'CLIENT' ? client.name : 'Вы' }}: </strong>{{ m.content }}
-          </div>
-          <div
-            v-if="awaitingClient && client"
-            class="bubble CLIENT typing-bubble"
-            aria-live="polite"
-            aria-label="Клиент печатает"
-          >
-            <strong>{{ client.name }}: </strong>
-            <span class="typing-dots" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </span>
-          </div>
-          <p v-if="!displayMessages.length && !awaitingClient" class="empty-hint">Пока нет сообщений в этом сеансе.</p>
+          <p v-if="chatHydrating" class="empty-hint">Открываем сеанс…</p>
+          <template v-else>
+            <div v-for="m in displayMessages" :key="m.id" class="bubble" :class="m.role">
+              <strong v-if="m.role !== 'SYSTEM'">{{ m.role === 'CLIENT' ? client.name : 'Вы' }}: </strong>{{ m.content }}
+            </div>
+            <div
+              v-if="awaitingClient && client"
+              class="bubble CLIENT typing-bubble"
+              aria-live="polite"
+              aria-label="Клиент печатает"
+            >
+              <strong>{{ client.name }}: </strong>
+              <span class="typing-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
+            </div>
+            <p v-if="!displayMessages.length && !awaitingClient" class="empty-hint">Пока нет сообщений в этом сеансе.</p>
+          </template>
         </div>
         <div v-if="!isReviewing && (!therapyDone || activeSessionId)" class="composer chat-composer">
           <textarea
@@ -1109,8 +1300,9 @@ function toggleClientInfo() {
             class="composer-input"
             rows="1"
             v-model="draft"
-            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone"
-            :placeholder="composerPlaceholder"
+            enterkeyhint="send"
+            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed"
+            :placeholder="llmAllowed ? composerPlaceholder : INSUFFICIENT_FUNDS_MSG"
             @input="resizeComposer(chatInputEl)"
             @keydown.enter.exact.prevent="send"
           />
@@ -1119,8 +1311,8 @@ function toggleClientInfo() {
             type="button"
             title="Отправить"
             aria-label="Отправить"
-            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone"
-            @click="send"
+            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed"
+            @pointerdown.prevent="send"
           >
             <span class="material-symbols-outlined" aria-hidden="true">send</span>
           </button>
@@ -1155,8 +1347,9 @@ function toggleClientInfo() {
             class="composer-input"
             rows="1"
             v-model="supervisorDraft"
-            :disabled="busy"
-            placeholder="Спросить супервизора…"
+            enterkeyhint="send"
+            :disabled="busy || !llmAllowed"
+            :placeholder="llmAllowed ? 'Спросить супервизора…' : INSUFFICIENT_FUNDS_MSG"
             @input="resizeComposer(supervisorInputEl)"
             @keydown.enter.exact.prevent="askSupervisor"
           />
@@ -1165,8 +1358,8 @@ function toggleClientInfo() {
             type="button"
             title="Спросить"
             aria-label="Спросить"
-            :disabled="busy"
-            @click="askSupervisor"
+            :disabled="busy || !llmAllowed"
+            @pointerdown.prevent="askSupervisor"
           >
             <span class="material-symbols-outlined" aria-hidden="true">send</span>
           </button>

@@ -6,7 +6,7 @@ const emit = defineEmits<{
   success: []
 }>()
 
-const username = ref('admin')
+const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const busy = ref(false)
@@ -63,7 +63,7 @@ async function submit() {
             autocomplete="username"
             autocapitalize="off"
             spellcheck="false"
-            placeholder="therapist"
+            placeholder="логин"
             :disabled="busy"
           />
         </label>
@@ -95,7 +95,6 @@ async function submit() {
         </label>
 
         <p v-if="error" class="error-text auth-error">{{ error }}</p>
-        <p class="muted auth-hint">Локально: therapist / therapist · admin / admin</p>
 
         <button class="toolbar-btn auth-submit" type="submit" :disabled="busy">
           <span

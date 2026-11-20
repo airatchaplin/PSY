@@ -40,6 +40,50 @@ export function requestChatPanelOnEnter(panel: PreferredLeftPanel) {
 /** Closed session currently under review (null = live / all history). */
 export const reviewingSessionId = ref<string | null>(null)
 
+const PENDING_REVIEW_KEY = 'psy.pendingSessionReview'
+
+export type PendingSessionReview = { sessionId: string; openAnalysis: boolean }
+
+/** Pending deep-link from Usage — sessionStorage so App route watches cannot wipe it. */
+export function requestSessionReview(sessionId: string, openAnalysis = false) {
+  if (!sessionId) return
+  const payload: PendingSessionReview = { sessionId, openAnalysis }
+  try {
+    sessionStorage.setItem(PENDING_REVIEW_KEY, JSON.stringify(payload))
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function peekPendingSessionReview(): PendingSessionReview | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_REVIEW_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as PendingSessionReview
+    if (!parsed?.sessionId) return null
+    return {
+      sessionId: String(parsed.sessionId),
+      openAnalysis: !!parsed.openAnalysis
+    }
+  } catch {
+    return null
+  }
+}
+
+export function takePendingSessionReview(): PendingSessionReview | null {
+  const pending = peekPendingSessionReview()
+  clearPendingSessionReview()
+  return pending
+}
+
+export function clearPendingSessionReview() {
+  try {
+    sessionStorage.removeItem(PENDING_REVIEW_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Live timer pause for the open chat client — keeps Клиенты badges in sync. */
 export const liveTimerClientId = ref<string | null>(null)
 export const liveTimerPaused = ref(false)
@@ -134,6 +178,7 @@ export function closeLeftPanelOnMobile(options?: { instant?: boolean }) {
 /** Leave chat: keep left-tab memory; only clear review focus. */
 export function resetSessionUi() {
   reviewingSessionId.value = null
+  clearPendingSessionReview()
   clearLiveTimerState()
 }
 
@@ -144,7 +189,27 @@ export function resetSessionUi() {
  * - desktop: restore last left tab (or open Клиенты)
  */
 export function openChatSessionUi() {
-  reviewingSessionId.value = null
+  // Do not clear reviewingSessionId here — App.vue calls this on route enter and would
+  // wipe a Usage deep-link / session review that ChatView just applied.
+  // Also do not steal the analysis panel after a Usage deep-link opened it.
+  const pending = peekPendingSessionReview()
+  if (pending?.openAnalysis || (sessionLeftPanel.value === 'analysis' && reviewingSessionId.value)) {
+    openPanelOnNextChatEnter = null
+    if (pending?.sessionId) reviewingSessionId.value = pending.sessionId
+    if (pending?.openAnalysis) openAnalysisPanel()
+    return
+  }
+  if (pending?.sessionId) {
+    // Session review without analysis: keep chat visible (mobile) / sessions (desktop).
+    reviewingSessionId.value = pending.sessionId
+    openPanelOnNextChatEnter = null
+    if (isMobileUi()) {
+      closeLeftPanelOnMobile({ instant: true })
+      return
+    }
+    openSessionsPanel()
+    return
+  }
   if (isMobileUi()) {
     if (openPanelOnNextChatEnter) {
       sessionLeftPanel.value = openPanelOnNextChatEnter

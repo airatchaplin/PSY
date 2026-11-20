@@ -26,7 +26,13 @@ public final class Dtos {
             boolean disclaimerAccepted,
             Instant disclaimerAcceptedAt,
             boolean admin,
-            List<String> roles
+            List<String> roles,
+            BigDecimal balanceRub,
+            boolean llmAllowed,
+            /** RouterAI /credits — only for admins; null for therapists. */
+            BigDecimal appBalanceRub,
+            /** Sum of all app_user.balance_rub — only for admins. */
+            BigDecimal usersBalanceTotalRub
     ) {
     }
 
@@ -277,6 +283,58 @@ public final class Dtos {
     ) {
     }
 
+    public record UsageBySource(
+            String source,
+            long calls,
+            long tokens,
+            BigDecimal costRub
+    ) {
+    }
+
+    public record UsageBySession(
+            UUID sessionId,
+            String sessionLabel,
+            Instant startedAt,
+            String status,
+            boolean hasAnalysis,
+            long calls,
+            long tokens,
+            BigDecimal costRub,
+            List<UsageBySource> byPurpose
+    ) {
+    }
+
+    public record UsageByClient(
+            UUID clientId,
+            String clientName,
+            Integer clientAge,
+            long calls,
+            long tokens,
+            BigDecimal costRub,
+            List<UsageBySource> byPurpose,
+            List<UsageBySession> bySession
+    ) {
+    }
+
+    public record UsageByGeneralItem(
+            UUID refId,
+            String label,
+            Instant createdAt,
+            long calls,
+            long tokens,
+            BigDecimal costRub
+    ) {
+    }
+
+    public record UsageByGeneral(
+            String source,
+            long calls,
+            long tokens,
+            BigDecimal costRub,
+            List<UsageByGeneralItem> items
+    ) {
+    }
+
     public record AdminUsageStatsResponse(
             int days,
             String from,
@@ -290,7 +348,10 @@ public final class Dtos {
             List<String> availableSources,
             List<UsageByDay> byDay,
             List<UsageByModel> byModel,
-            List<UsageByUser> byUser
+            List<UsageByUser> byUser,
+            List<UsageBySource> bySource,
+            List<UsageByClient> byClient,
+            List<UsageByGeneral> byGeneral
     ) {
     }
 
@@ -312,7 +373,8 @@ public final class Dtos {
             String email,
             String displayName,
             boolean enabled,
-            List<String> roles
+            List<String> roles,
+            BigDecimal balanceRub
     ) {
     }
 
@@ -322,6 +384,22 @@ public final class Dtos {
             String email,
             String displayName,
             boolean admin
+    ) {
+    }
+
+    public record TopUpBalanceRequest(BigDecimal amountRub) {
+    }
+
+    public record BalanceTopUpResponse(
+            String id,
+            String userId,
+            String username,
+            String displayName,
+            BigDecimal amountRub,
+            BigDecimal balanceAfterRub,
+            String createdByUserId,
+            String createdByUsername,
+            Instant createdAt
     ) {
     }
 }

@@ -7,7 +7,9 @@ import com.psy.trainer.domain.CaseSource;
 import com.psy.trainer.domain.Difficulty;
 import com.psy.trainer.domain.TherapistProfile;
 import com.psy.trainer.domain.TherapyCaseEntity;
+import com.psy.trainer.llm.LlmCallContext;
 import com.psy.trainer.llm.LlmClient;
+import com.psy.trainer.llm.LlmUsageContext;
 import com.psy.trainer.rag.RagService;
 import com.psy.trainer.repo.TherapistProfileRepository;
 import com.psy.trainer.repo.TherapyCaseRepository;
@@ -137,10 +139,12 @@ public class CaseService {
         user.append("Уже существующие кейсы (не повторяй):\n")
                 .append(existing.isBlank() ? "(пока пусто)" : existing);
 
-        String raw = llmClient.chatJson(List.of(
+        UUID caseId = UUID.randomUUID();
+        LlmCallContext usageCtx = LlmCallContext.of("case", null, null, caseId);
+        String raw = LlmUsageContext.call(usageCtx, () -> llmClient.chatJson(List.of(
                 LlmClient.ChatMessage.system(promptLoader.load("case-generation.txt")),
                 LlmClient.ChatMessage.user(user.toString())
-        ));
+        ), usageCtx));
 
         try {
             JsonNode json = objectMapper.readTree(extractJson(raw));
@@ -151,6 +155,7 @@ public class CaseService {
             String notes = blankToNull(text(json, "notes", null));
 
             TherapyCaseEntity entity = TherapyCaseEntity.create(
+                    caseId,
                     title,
                     presenting,
                     difficulty,
@@ -159,6 +164,7 @@ public class CaseService {
                     source,
                     therapist.getId(),
                     hasPrompt ? prompt.trim() : null,
+                    null,
                     null
             );
             return toResponse(caseRepository.save(entity), therapist.getId());

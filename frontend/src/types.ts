@@ -16,6 +16,14 @@ export interface Me {
   disclaimerAcceptedAt?: string
   admin?: boolean
   roles?: string[]
+  /** Internal PSY balance in ₽ */
+  balanceRub?: number | null
+  /** false when balanceRub < 0 */
+  llmAllowed?: boolean
+  /** RouterAI /credits — admins only */
+  appBalanceRub?: number | null
+  /** Sum of all user balances — admins only */
+  usersBalanceTotalRub?: number | null
 }
 
 export interface AdminOverview {
@@ -80,6 +88,41 @@ export interface AdminUsageStats {
     tokens: number
     costRub: number
   }[]
+  bySource?: { source: string; calls: number; tokens: number; costRub: number }[]
+  byClient?: {
+    clientId?: string | null
+    clientName: string
+    clientAge?: number | null
+    calls: number
+    tokens: number
+    costRub: number
+    byPurpose: { source: string; calls: number; tokens: number; costRub: number }[]
+    bySession?: {
+      sessionId?: string | null
+      sessionLabel: string
+      startedAt?: string | null
+      status?: string | null
+      hasAnalysis?: boolean
+      calls: number
+      tokens: number
+      costRub: number
+      byPurpose: { source: string; calls: number; tokens: number; costRub: number }[]
+    }[]
+  }[]
+  byGeneral?: {
+    source: string
+    calls: number
+    tokens: number
+    costRub: number
+    items: {
+      refId?: string | null
+      label: string
+      createdAt?: string | null
+      calls: number
+      tokens: number
+      costRub: number
+    }[]
+  }[]
 }
 
 export type AdminUsageChartMetric = 'cost' | 'tokens' | 'calls'
@@ -89,6 +132,7 @@ export interface AdminUsageQuery {
   to?: string
   model?: string
   source?: string
+  therapistId?: string
   days?: number
 }
 
@@ -99,6 +143,19 @@ export interface AppUser {
   displayName?: string | null
   enabled: boolean
   roles: string[]
+  balanceRub?: number | null
+}
+
+export interface BalanceTopUp {
+  id: string
+  userId: string
+  username: string
+  displayName?: string | null
+  amountRub: number
+  balanceAfterRub: number
+  createdByUserId?: string | null
+  createdByUsername?: string | null
+  createdAt: string
 }
 
 export interface CreateAppUserPayload {

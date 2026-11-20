@@ -6,7 +6,9 @@ import com.psy.trainer.domain.MessageRole;
 import com.psy.trainer.domain.SupervisorMessage;
 import com.psy.trainer.domain.SupervisorThread;
 import com.psy.trainer.domain.TherapistProfile;
+import com.psy.trainer.llm.LlmCallContext;
 import com.psy.trainer.llm.LlmClient;
+import com.psy.trainer.llm.LlmUsageContext;
 import com.psy.trainer.rag.RagService;
 import com.psy.trainer.repo.ClientRepository;
 import com.psy.trainer.repo.MessageRepository;
@@ -104,39 +106,42 @@ public class SupervisorService {
 
         supervisorMessageRepository.save(SupervisorMessage.of(thread.getId(), MessageRole.THERAPIST, content.trim()));
 
-        String knowledge = ragService.retrieveGestaltKnowledge(content, 4);
-        List<Message> recent = messageRepository.findTop40ByClientIdOrderByCreatedAtDesc(clientId);
-        recent = recent.reversed();
+        LlmCallContext usageCtx = LlmCallContext.of("supervisor", clientId, activeSessionId);
+        String reply = LlmUsageContext.call(usageCtx, () -> {
+            String knowledge = ragService.retrieveGestaltKnowledge(content, 4);
+            List<Message> recent = messageRepository.findTop40ByClientIdOrderByCreatedAtDesc(clientId);
+            recent = recent.reversed();
 
-        StringJoiner transcript = new StringJoiner("\n");
-        for (Message m : recent) {
-            if (m.getRole() == MessageRole.SYSTEM) {
-                continue;
+            StringJoiner transcript = new StringJoiner("\n");
+            for (Message m : recent) {
+                if (m.getRole() == MessageRole.SYSTEM) {
+                    continue;
+                }
+                transcript.add(m.getRole() + ": " + m.getContent());
             }
-            transcript.add(m.getRole() + ": " + m.getContent());
-        }
 
-        StringJoiner system = new StringJoiner("\n\n");
-        system.add(promptLoader.load("supervisor-system.txt"));
-        system.add("Клиент: " + client.getName() + ", " + client.getAge() + " лет");
-        system.add("Запрос: " + client.getPresentingRequest());
-        system.add("Поведение: " + String.join(", ", client.getBehaviorTags()));
-        system.add("Фрагмент транскрипта:\n" + transcript);
-        if (!knowledge.isBlank()) {
-            system.add("Материалы гештальта:\n" + knowledge);
-        }
-
-        List<LlmClient.ChatMessage> messages = new ArrayList<>();
-        messages.add(LlmClient.ChatMessage.system(system.toString()));
-        for (SupervisorMessage m : supervisorMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId())) {
-            if (m.getRole() == MessageRole.THERAPIST) {
-                messages.add(LlmClient.ChatMessage.user(m.getContent()));
-            } else {
-                messages.add(LlmClient.ChatMessage.assistant(m.getContent()));
+            StringJoiner system = new StringJoiner("\n\n");
+            system.add(promptLoader.load("supervisor-system.txt"));
+            system.add("Клиент: " + client.getName() + ", " + client.getAge() + " лет");
+            system.add("Запрос: " + client.getPresentingRequest());
+            system.add("Поведение: " + String.join(", ", client.getBehaviorTags()));
+            system.add("Фрагмент транскрипта:\n" + transcript);
+            if (!knowledge.isBlank()) {
+                system.add("Материалы гештальта:\n" + knowledge);
             }
-        }
 
-        String reply = llmClient.chat(messages);
+            List<LlmClient.ChatMessage> messages = new ArrayList<>();
+            messages.add(LlmClient.ChatMessage.system(system.toString()));
+            for (SupervisorMessage m : supervisorMessageRepository.findByThreadIdOrderByCreatedAtAsc(thread.getId())) {
+                if (m.getRole() == MessageRole.THERAPIST) {
+                    messages.add(LlmClient.ChatMessage.user(m.getContent()));
+                } else {
+                    messages.add(LlmClient.ChatMessage.assistant(m.getContent()));
+                }
+            }
+
+            return llmClient.chat(messages, usageCtx);
+        });
         SupervisorMessage saved = supervisorMessageRepository.save(
                 SupervisorMessage.of(thread.getId(), MessageRole.SUPERVISOR, reply));
         return new Dtos.MessageResponse(

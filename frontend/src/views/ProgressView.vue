@@ -2,12 +2,15 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api/client'
 import AnalysisReport from '../components/AnalysisReport.vue'
-import { closeLeftPanelOnMobile } from '../sessionUi'
-import { difficultyLabel, rubricLabel, tagCode, tagLabel } from '../labels'
+import { difficultyLabel, rubricLabel, tagLabel } from '../labels'
+import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
+import { llmAllowed, setMeProfile } from '../meProfile'
+import { setProgressMobileTab } from '../progressUi'
 import type { Analysis, Progress } from '../types'
 
 const progress = ref<Progress | null>(null)
-const globalAnalysis = ref<Analysis | null>(null)
+const notebookAnalyses = ref<Analysis[]>([])
+const selectedAnalysisId = ref<string | null>(null)
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
@@ -23,11 +26,44 @@ const ANALYZING_STATUSES = [
 
 const analyzingStatus = computed(() => ANALYZING_STATUSES[analyzingStatusIdx.value] ?? ANALYZING_STATUSES[0])
 
+const selectedAnalysis = computed(() =>
+  notebookAnalyses.value.find(a => a.id === selectedAnalysisId.value) || null
+)
+
+function formatAnalysisWhen(iso: string) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function loadNotebookAnalyses() {
+  const list = await api.listGlobalAnalyses()
+  notebookAnalyses.value = Array.isArray(list) ? list : []
+  // Keep selection only if it still exists — never auto-open an analysis.
+  if (
+    selectedAnalysisId.value
+    && !notebookAnalyses.value.some(a => a.id === selectedAnalysisId.value)
+  ) {
+    selectedAnalysisId.value = null
+  }
+}
+
 onMounted(async () => {
   try {
     progress.value = await api.progress()
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+  }
+  try {
+    await loadNotebookAnalyses()
+  } catch (e) {
+    if (!error.value) error.value = apiErrorMessage(e)
   } finally {
     loading.value = false
   }
@@ -39,6 +75,10 @@ onUnmounted(() => {
 
 async function analyzeAll() {
   if (busy.value) return
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   busy.value = true
   error.value = ''
   analyzingStatusIdx.value = 0
@@ -47,9 +87,14 @@ async function analyzeAll() {
     analyzingStatusIdx.value = (analyzingStatusIdx.value + 1) % ANALYZING_STATUSES.length
   }, 2200)
   try {
-    globalAnalysis.value = await api.analyzeGlobal()
+    const created = await api.analyzeGlobal()
+    notebookAnalyses.value = [created, ...notebookAnalyses.value.filter(a => a.id !== created.id)]
+    selectedAnalysisId.value = created.id
+    setProgressMobileTab('clients')
+    try { setMeProfile(await api.me()) } catch { /* ignore */ }
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    try { setMeProfile(await api.me()) } catch { /* ignore */ }
   } finally {
     if (analyzingStatusTimer) {
       clearInterval(analyzingStatusTimer)
@@ -59,37 +104,68 @@ async function analyzeAll() {
   }
 }
 
-function therapyProgressLabel(value: unknown) {
-  const n = typeof value === 'number' ? value : Number(value)
-  return `${Number.isFinite(n) ? Math.round(n) : 0}%`
+function selectAnalysis(id: string) {
+  selectedAnalysisId.value = id
+  setProgressMobileTab('clients')
+}
+
+function backToAnalyses() {
+  selectedAnalysisId.value = null
 }
 </script>
 
 <template>
   <Teleport defer to="#progress-recent-slot">
-    <div class="progress-recent">
-      <div class="section-label left-scroll-label">Недавние клиенты</div>
-      <p v-if="loading" class="empty-hint">Загрузка…</p>
-      <p v-else-if="!progress?.recentClients.length" class="empty-hint">Пока нет клиентов.</p>
-      <div v-else class="segmented-list">
-        <RouterLink
-          v-for="c in progress.recentClients"
-          :key="c.id"
-          class="list-item"
-          :to="`/clients/${c.id}`"
-          @click="closeLeftPanelOnMobile({ instant: true })"
-        >
-          <div class="list-item-top">
-            <div class="list-item-title">
-              <strong>{{ c.name }}</strong>, {{ c.age }} · сеансов: {{ c.sessions }}
-            </div>
-            <span class="session-entry-badge progress-badge">{{ therapyProgressLabel(c.therapyProgress) }}</span>
+    <div
+      class="progress-recent progress-analyses"
+      :class="{ 'progress-analyses--detail': selectedAnalysis && !busy }"
+    >
+      <template v-if="selectedAnalysis && !busy">
+        <div class="progress-analysis-head">
+          <button
+            class="icon-btn secondary panel-back-clients"
+            type="button"
+            title="Ко всем анализам"
+            aria-label="Ко всем анализам"
+            @click="backToAnalyses"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </button>
+          <div class="section-label left-scroll-label progress-analysis-title">
+            Анализ тетради
+            <span>{{ formatAnalysisWhen(selectedAnalysis.createdAt) }}</span>
           </div>
-          <div class="tags">
-            <span class="tag" v-for="t in c.behaviorTags" :key="tagCode(t)">{{ tagLabel(t) }}</span>
+        </div>
+        <div class="progress-analysis-detail analysis-reveal">
+          <AnalysisReport :analysis="selectedAnalysis" />
+        </div>
+      </template>
+      <template v-else>
+        <div class="section-label left-scroll-label">Анализы тетради</div>
+        <p v-if="loading" class="empty-hint">Загрузка…</p>
+        <p v-else-if="!notebookAnalyses.length" class="empty-hint">
+          Пока нет сохранённых анализов — создайте на странице статистики.
+        </p>
+        <template v-else>
+          <div class="segmented-list progress-analysis-picker" role="listbox" aria-label="Анализы тетради">
+            <button
+              v-for="a in notebookAnalyses"
+              :key="a.id"
+              type="button"
+              role="option"
+              class="list-item progress-analysis-pick"
+              :aria-selected="false"
+              @click="selectAnalysis(a.id)"
+            >
+              <div class="list-item-top">
+                <div class="list-item-title">
+                  <strong>{{ formatAnalysisWhen(a.createdAt) }}</strong>
+                </div>
+              </div>
+            </button>
           </div>
-        </RouterLink>
-      </div>
+        </template>
+      </template>
     </div>
   </Teleport>
 
@@ -106,7 +182,8 @@ function therapyProgressLabel(value: unknown) {
         class="toolbar-btn"
         type="button"
         :class="{ analyzing: busy }"
-        :disabled="busy"
+        :disabled="busy || !llmAllowed"
+        :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
         @click="analyzeAll"
       >
         <span
@@ -168,10 +245,5 @@ function therapyProgressLabel(value: unknown) {
         {{ rubricLabel(r.dimension) }}: {{ r.average.toFixed(2) }}
       </div>
     </template>
-
-    <div v-if="globalAnalysis && !busy" class="panel inset analysis-reveal">
-      <h3>Анализ тетради</h3>
-      <AnalysisReport :analysis="globalAnalysis" />
-    </div>
   </div>
 </template>

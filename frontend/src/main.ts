@@ -4,11 +4,14 @@ import { router } from './router'
 import { initAuth } from './auth/session'
 import { initTheme } from './theme'
 import { initPwaInstall } from './pwa'
+import { startAppViewportWatch } from './appViewport'
+import '@fontsource-variable/material-symbols-outlined/standard.css'
 import './styles.css'
 import './themes.css'
 
 initTheme()
 initPwaInstall()
+startAppViewportWatch()
 
 async function bootstrap() {
   try {

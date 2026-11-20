@@ -88,9 +88,37 @@ public class TherapyCaseEntity {
             String slug,
             UUID originCaseId
     ) {
+        return create(
+                UUID.randomUUID(),
+                title,
+                presentingRequest,
+                difficulty,
+                suggestedTags,
+                notes,
+                source,
+                createdBy,
+                promptUsed,
+                slug,
+                originCaseId
+        );
+    }
+
+    public static TherapyCaseEntity create(
+            UUID id,
+            String title,
+            String presentingRequest,
+            Difficulty difficulty,
+            String[] suggestedTags,
+            String notes,
+            CaseSource source,
+            UUID createdBy,
+            String promptUsed,
+            String slug,
+            UUID originCaseId
+    ) {
         TherapyCaseEntity c = new TherapyCaseEntity();
         Instant now = Instant.now();
-        c.id = UUID.randomUUID();
+        c.id = id == null ? UUID.randomUUID() : id;
         c.slug = slug;
         c.title = title;
         c.presentingRequest = presentingRequest;

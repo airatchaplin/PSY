@@ -19,6 +19,16 @@ public class LlmUsage {
     @Column(name = "therapist_id")
     private UUID therapistId;
 
+    @Column(name = "client_id")
+    private UUID clientId;
+
+    @Column(name = "session_id")
+    private UUID sessionId;
+
+    /** Optional link to therapy_case / session_analysis / etc. */
+    @Column(name = "ref_id")
+    private UUID refId;
+
     @Column(nullable = false)
     private String model;
 
@@ -48,6 +58,27 @@ public class LlmUsage {
 
     public static LlmUsage of(
             UUID therapistId,
+            UUID clientId,
+            UUID sessionId,
+            String model,
+            String purpose,
+            Integer promptTokens,
+            Integer completionTokens,
+            Integer totalTokens,
+            BigDecimal costRub,
+            String generationId
+    ) {
+        return of(
+                therapistId, clientId, sessionId, null, model, purpose,
+                promptTokens, completionTokens, totalTokens, costRub, generationId
+        );
+    }
+
+    public static LlmUsage of(
+            UUID therapistId,
+            UUID clientId,
+            UUID sessionId,
+            UUID refId,
             String model,
             String purpose,
             Integer promptTokens,
@@ -59,6 +90,9 @@ public class LlmUsage {
         LlmUsage u = new LlmUsage();
         u.id = UUID.randomUUID();
         u.therapistId = therapistId;
+        u.clientId = clientId;
+        u.sessionId = sessionId;
+        u.refId = refId;
         u.model = model;
         u.purpose = purpose == null || purpose.isBlank() ? "chat" : purpose;
         u.promptTokens = promptTokens;
@@ -76,6 +110,18 @@ public class LlmUsage {
 
     public UUID getTherapistId() {
         return therapistId;
+    }
+
+    public UUID getClientId() {
+        return clientId;
+    }
+
+    public UUID getSessionId() {
+        return sessionId;
+    }
+
+    public UUID getRefId() {
+        return refId;
     }
 
     public String getModel() {
@@ -100,6 +146,10 @@ public class LlmUsage {
 
     public BigDecimal getCostRub() {
         return costRub;
+    }
+
+    public void setCostRub(BigDecimal costRub) {
+        this.costRub = costRub;
     }
 
     public String getGenerationId() {

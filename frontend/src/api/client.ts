@@ -10,6 +10,7 @@ import type {
   CreateCasePayload,
   CreateAppUserPayload,
   AppUser,
+  BalanceTopUp,
   Me,
   CaseShareLink,
   ImportSharedCaseResult,
@@ -26,6 +27,8 @@ import type {
   SessionSummary
 } from '../types'
 
+import { ApiError, INSUFFICIENT_FUNDS_MSG } from './errors'
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081'
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -37,7 +40,18 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { ...init, headers })
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || res.statusText)
+    let message = text || res.statusText
+    try {
+      const parsed = JSON.parse(text) as { detail?: string; message?: string; title?: string }
+      if (typeof parsed.detail === 'string' && parsed.detail) message = parsed.detail
+      else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+    } catch {
+      /* keep raw text */
+    }
+    if (res.status === 402) {
+      throw new ApiError(message || INSUFFICIENT_FUNDS_MSG, 402)
+    }
+    throw new ApiError(message, res.status)
   }
   if (res.status === 204) {
     return undefined as T
@@ -48,6 +62,21 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   me: () => request<Me>('/api/me'),
   acceptDisclaimer: () => request<Me>('/api/me/accept-disclaimer', { method: 'POST' }),
+  myBalanceHistory: () => request<BalanceTopUp[]>('/api/me/balance/history'),
+  myUsage: (query: AdminUsageQuery | number = 30) => {
+    const params = new URLSearchParams()
+    if (typeof query === 'number') {
+      params.set('days', String(query))
+    } else {
+      if (query.days != null) params.set('days', String(query.days))
+      if (query.from) params.set('from', query.from)
+      if (query.to) params.set('to', query.to)
+      if (query.model) params.set('model', query.model)
+      if (query.source) params.set('source', query.source)
+    }
+    const qs = params.toString()
+    return request<AdminUsageStats>(`/api/me/usage${qs ? `?${qs}` : ''}`)
+  },
   clients: () => request<Client[]>('/api/clients'),
   client: (id: string) => request<Client>(`/api/clients/${id}`),
   startReception: (body?: StartReceptionPayload) =>
@@ -97,6 +126,8 @@ export const api = {
     request<Analysis>(`/api/sessions/${sessionId}/analysis`),
   analyzeSession: (sessionId: string) =>
     request<Analysis>(`/api/sessions/${sessionId}/analysis`, { method: 'POST' }),
+  listGlobalAnalyses: () => request<Analysis[]>('/api/analysis/global'),
+  getGlobalAnalysis: (id: string) => request<Analysis>(`/api/analysis/global/${id}`),
   analyzeGlobal: () => request<Analysis>('/api/analysis/global', { method: 'POST' }),
   progress: () => request<Progress>('/api/progress'),
   cases: () => request<CaseItem[]>('/api/cases'),
@@ -148,6 +179,7 @@ export const api = {
       if (query.to) params.set('to', query.to)
       if (query.model) params.set('model', query.model)
       if (query.source) params.set('source', query.source)
+      if (query.therapistId) params.set('therapistId', query.therapistId)
     }
     const qs = params.toString()
     return request<AdminUsageStats>(`/api/admin/usage${qs ? `?${qs}` : ''}`)
@@ -157,5 +189,13 @@ export const api = {
     request<AppUser>('/api/admin/users', {
       method: 'POST',
       body: JSON.stringify(body)
-    })
+    }),
+  adminTopUpUser: (id: string, amountRub: number) =>
+    request<AppUser>(`/api/admin/users/${id}/balance`, {
+      method: 'POST',
+      body: JSON.stringify({ amountRub })
+    }),
+  adminTopUpHistory: () => request<BalanceTopUp[]>('/api/admin/balance/topups'),
+  adminUserBalanceHistory: (id: string) =>
+    request<BalanceTopUp[]>(`/api/admin/users/${id}/balance/history`)
 }

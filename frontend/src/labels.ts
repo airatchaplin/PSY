@@ -28,6 +28,41 @@ const RUBRIC_DIMENSIONS_RU: Record<string, string> = {
   question_vs_interpretation_balance: 'Баланс вопросов и интерпретаций'
 }
 
+const USAGE_SOURCE_LABELS: Record<string, string> = {
+  chat: 'Чаты с клиентом',
+  stream: 'Чаты с клиентом',
+  supervisor: 'Супервизор',
+  analysis_session: 'Анализы сеанса',
+  analysis_client: 'Анализ клиента',
+  analysis_global: 'Анализ тетради',
+  analysis: 'Анализ',
+  reception: 'Чаты с клиентом', // legacy purpose; new calls use `chat`
+  session_return: 'Чаты с клиентом', // legacy purpose; new calls use `chat`
+  progress: 'Прогресс терапии',
+  case: 'Генерация кейса',
+  embed: 'Память и поиск (векторный индекс)',
+  json: 'JSON / прочее',
+  prompt: 'Промпт'
+}
+
+/** Singular forms for a single session card. */
+const USAGE_SOURCE_LABELS_SESSION: Record<string, string> = {
+  chat: 'Чат с клиентом',
+  stream: 'Чат с клиентом',
+  reception: 'Чат с клиентом',
+  session_return: 'Чат с клиентом',
+  analysis_session: 'Анализ сеанса'
+}
+
+export type UsageSourceLabelScope = 'client' | 'session'
+
+export function usageSourceLabel(source: string, scope: UsageSourceLabelScope = 'client'): string {
+  if (scope === 'session' && USAGE_SOURCE_LABELS_SESSION[source]) {
+    return USAGE_SOURCE_LABELS_SESSION[source]
+  }
+  return USAGE_SOURCE_LABELS[source] || source
+}
+
 export function tagLabel(tag: string | TagDto): string {
   if (tag && typeof tag === 'object') {
     return tag.labelRu || tag.code

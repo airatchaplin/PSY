@@ -5,6 +5,17 @@ import { api } from './api/client'
 import { authenticated, isAdmin } from './auth/session'
 import AiWorkingBlock from './components/AiWorkingBlock.vue'
 import LoginView from './views/LoginView.vue'
+import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from './api/errors'
+import {
+  appBalanceRub,
+  balanceIsNegative,
+  balanceIsZero,
+  balanceRub,
+  formatBalanceRub,
+  llmAllowed,
+  meProfile,
+  setMeProfile
+} from './meProfile'
 import {
   bumpCasesVersion,
   casesMobileTab,
@@ -14,6 +25,8 @@ import {
   stashPendingShareToken,
   takePendingShareToken
 } from './casesUi'
+import { adminNavItems, adminSection, setAdminSection } from './adminUi'
+import { settingsNavItems, settingsSection, setSettingsSection } from './settingsUi'
 import { progressMobileTab, setProgressMobileTab } from './progressUi'
 import { tagCode, tagLabel } from './labels'
 import {
@@ -21,25 +34,31 @@ import {
   CHAT_MOBILE_PAGES,
   chatPageFromPanel,
   setChatMobilePage,
+  shiftAdminMobilePage,
   shiftCasesMobilePage,
   shiftChatMobilePage,
   shiftProgressMobilePage,
+  shiftSettingsMobilePage,
   type ChatMobilePage,
   type MobileSwipeDir
 } from './mobilePager'
 import {
   anyLeftPanelOpen,
+  clearLiveTimerState,
   clientsPanelOpen,
   closeLeftPanelOnMobile,
   isMobileUi,
   liveTimerClientId,
   liveTimerPaused,
   notesPanelOpen,
+  openAnalysisPanel,
   openChatSessionUi,
   openClientsPanel,
   panelTransitionEnabled,
+  peekPendingSessionReview,
   requestChatPanelOnEnter,
   resetSessionUi,
+  reviewingSessionId,
   sessionLeftPanel,
   sessionsPanelOpen,
   startSessionUiViewportWatch,
@@ -174,6 +193,19 @@ function enterChatLayout() {
     openClientsPanel({ persist: false })
     return
   }
+  // Usage → session/analysis: prime panel before ChatView mounts to avoid flicker.
+  const pending = peekPendingSessionReview()
+  if (pending?.sessionId) {
+    reviewingSessionId.value = pending.sessionId
+    panelTransitionEnabled.value = false
+    if (pending.openAnalysis) {
+      openAnalysisPanel()
+    }
+    queueMicrotask(() => {
+      panelTransitionEnabled.value = true
+    })
+    return
+  }
   openChatSessionUi()
 }
 
@@ -197,7 +229,21 @@ const allBookmarks = computed<BookmarkItem[]>(() => {
 
 async function loadMe() {
   me.value = await api.me()
+  setMeProfile(me.value)
 }
+
+/** Refresh balance / LLM gate without blocking the UI. */
+async function refreshBalanceQuiet() {
+  if (!authenticated.value) return
+  try {
+    await loadMe()
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Prefer shared profile (updated after LLM) for balance display. */
+const displayBalance = computed(() => meProfile.value?.balanceRub ?? me.value?.balanceRub ?? balanceRub.value)
 
 function setLastClientId(id: string | null) {
   lastClientId.value = id
@@ -252,12 +298,21 @@ function isClientSessionPaused(c: Client) {
   return !!c.activeSessionTimerPaused
 }
 
+function therapyProgressLabel(value: unknown) {
+  const n = typeof value === 'number' ? value : Number(value)
+  return `${Number.isFinite(n) ? Math.round(n) : 0}%`
+}
+
 function clampReceptionAge() {
   if (receptionAge.value < 18) receptionAge.value = 18
   if (receptionAge.value > 80) receptionAge.value = 80
 }
 
 async function startReception() {
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   starting.value = true
   error.value = ''
   try {
@@ -270,10 +325,12 @@ async function startReception() {
     setLastClientId(reception.client.id)
     newReceptionOpen.value = false
     await loadClients()
+    await loadMe()
     closeLeftPanelOnMobile({ instant: true })
     await router.push(`/clients/${reception.client.id}`)
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    await loadMe().catch(() => undefined)
   } finally {
     starting.value = false
   }
@@ -312,6 +369,10 @@ async function createCaseManual() {
 }
 
 async function generateCaseFromPrompt() {
+  if (!llmAllowed.value) {
+    caseError.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   if (!casePrompt.value.trim()) {
     caseError.value = 'Опишите, какой кейс нужен.'
     return
@@ -322,21 +383,29 @@ async function generateCaseFromPrompt() {
     await api.generateCase(casePrompt.value.trim())
     casePrompt.value = ''
     bumpCasesVersion()
+    await loadMe()
   } catch (e) {
-    caseError.value = String(e)
+    caseError.value = apiErrorMessage(e)
+    await loadMe().catch(() => undefined)
   } finally {
     caseBusy.value = false
   }
 }
 
 async function generateCaseAuto() {
+  if (!llmAllowed.value) {
+    caseError.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   caseBusy.value = true
   caseError.value = ''
   try {
     await api.generateCase()
     bumpCasesVersion()
+    await loadMe()
   } catch (e) {
-    caseError.value = String(e)
+    caseError.value = apiErrorMessage(e)
+    await loadMe().catch(() => undefined)
   } finally {
     caseBusy.value = false
   }
@@ -447,11 +516,25 @@ const mobilePagerDots = computed(() => {
   if (isProgressPage.value) {
     return {
       pages: [
-        { id: 'clients', label: 'Клиенты' },
-        { id: 'stats', label: 'Статистика' }
+        { id: 'stats', label: 'Статистика' },
+        { id: 'clients', label: 'Анализы' }
       ],
       active: progressMobileTab.value,
       select: (id: string) => setProgressMobileTab(id as 'clients' | 'stats')
+    }
+  }
+  if (isAdminPage.value) {
+    return {
+      pages: adminNavItems.map(item => ({ id: item.id, label: item.label })),
+      active: adminSection.value,
+      select: (id: string) => setAdminSection(id as typeof adminSection.value)
+    }
+  }
+  if (isSettingsPage.value) {
+    return {
+      pages: settingsNavItems.map(item => ({ id: item.id, label: item.label })),
+      active: settingsSection.value,
+      select: (id: string) => setSettingsSection(id as typeof settingsSection.value)
     }
   }
   return null
@@ -468,6 +551,8 @@ function onMobileSwipeLeft() {
   if (isChatLayout.value) return shiftChatMobilePage(1)
   if (isCasesPage.value) return shiftCasesMobilePage(1)
   if (isProgressPage.value) return shiftProgressMobilePage(1)
+  if (isAdminPage.value) return shiftAdminMobilePage(1)
+  if (isSettingsPage.value) return shiftSettingsMobilePage(1)
   return false
 }
 
@@ -475,6 +560,8 @@ function onMobileSwipeRight() {
   if (isChatLayout.value) return shiftChatMobilePage(-1)
   if (isCasesPage.value) return shiftCasesMobilePage(-1)
   if (isProgressPage.value) return shiftProgressMobilePage(-1)
+  if (isAdminPage.value) return shiftAdminMobilePage(-1)
+  if (isSettingsPage.value) return shiftSettingsMobilePage(-1)
   return false
 }
 
@@ -542,7 +629,14 @@ watch(
       // clients ↔ chat: layout only — ChatView.loadAll fetches the conversation.
       enterChatLayout()
     } else if (!chatLayout) {
-      resetSessionUi()
+      // Keep a just-queued Usage deep-link (sessionStorage) when leaving chat → settings/etc.
+      // Actually clear review UI state, but do not drop a pending review set for the next enter.
+      if (peekPendingSessionReview()) {
+        reviewingSessionId.value = null
+        clearLiveTimerState()
+      } else {
+        resetSessionUi()
+      }
       newReceptionOpen.value = false
     }
   }
@@ -573,6 +667,32 @@ watch(clientsPanelOpen, async open => {
   }
   try { await loadClients({ soft: true }) } catch { /* ignore */ }
 })
+
+// Balance gate: re-check on every main / side tab change (not only full page reload).
+watch(activeBookmark, (id, prev) => {
+  if (id === prev) return
+  void refreshBalanceQuiet()
+})
+watch(progressMobileTab, (tab, prev) => {
+  if (tab === prev) return
+  void refreshBalanceQuiet()
+})
+watch(casesMobileTab, (tab, prev) => {
+  if (tab === prev) return
+  void refreshBalanceQuiet()
+})
+watch(settingsSection, (section, prev) => {
+  if (section === prev) return
+  void refreshBalanceQuiet()
+})
+watch(adminSection, (section, prev) => {
+  if (section === prev) return
+  void refreshBalanceQuiet()
+})
+watch(sessionLeftPanel, (panel, prev) => {
+  if (panel === prev) return
+  void refreshBalanceQuiet()
+})
 </script>
 
 <template>
@@ -588,7 +708,10 @@ watch(clientsPanelOpen, async open => {
     <div
       v-else
       class="notebook-stage"
-      :class="{ 'mobile-tab-bar-hidden': hideMobileBottomBar }"
+      :class="{
+        'mobile-tab-bar-hidden': hideMobileBottomBar,
+        'has-balance-banner': !llmAllowed
+      }"
     >
       <div
         class="bookmarks-bar"
@@ -612,6 +735,25 @@ watch(clientsPanelOpen, async open => {
         </nav>
       </div>
 
+      <div
+        v-if="!llmAllowed"
+        class="balance-block-banner balance-block-banner-global"
+        :class="balanceIsZero ? 'is-warning' : 'is-danger'"
+        role="status"
+      >
+        <span class="material-symbols-outlined balance-block-icon" aria-hidden="true">account_balance_wallet</span>
+        <div class="balance-block-copy">
+          <div class="balance-block-title">
+            {{ balanceIsZero ? 'Баланс исчерпан' : 'Недостаточно средств' }}
+            <strong class="balance-block-amount">{{ formatBalanceRub(displayBalance) }}</strong>
+          </div>
+          <p class="balance-block-text">
+            Функции с ИИ недоступны — попросите администратора пополнить счёт.
+          </p>
+        </div>
+      </div>
+
+      <div class="notebook-frame">
       <div
         ref="notebookEl"
         class="notebook"
@@ -702,7 +844,7 @@ watch(clientsPanelOpen, async open => {
               :aria-selected="progressMobileTab === 'clients'"
               @click="setProgressMobileTab('clients')"
             >
-              <span class="side-bookmark-label">Клиенты</span>
+              <span class="side-bookmark-label">Анализы</span>
             </button>
             <button
               type="button"
@@ -733,12 +875,30 @@ watch(clientsPanelOpen, async open => {
             :aria-hidden="!isSettingsPage"
             :inert="isSettingsPage ? undefined : true"
           >
-            <p class="muted settings-left-copy">
-              Здесь можно сменить тему тетради и выйти из аккаунта. Выбор темы сохраняется на этом устройстве.
-            </p>
+            <div id="settings-nav-slot"></div>
             <div class="settings-left-meta" v-if="me">
               <strong>{{ me.displayName }}</strong>
               <span v-if="me.email" class="muted">{{ me.email }}</span>
+              <span
+                v-if="me.admin"
+                class="muted"
+              >
+                Баланс приложения:
+                {{
+                  (appBalanceRub ?? me.appBalanceRub) == null
+                    ? '—'
+                    : formatBalanceRub(appBalanceRub ?? me.appBalanceRub)
+                }}
+              </span>
+              <span
+                class="muted"
+                :class="{
+                  'balance-negative': balanceIsNegative,
+                  'balance-warning': balanceIsZero
+                }"
+              >
+                {{ me.admin ? 'Личный баланс' : 'Баланс' }}: {{ formatBalanceRub(displayBalance) }}
+              </span>
             </div>
           </div>
 
@@ -829,7 +989,8 @@ watch(clientsPanelOpen, async open => {
                       type="button"
                       class="toolbar-btn"
                       :class="{ analyzing: starting }"
-                      :disabled="starting"
+                      :disabled="starting || !llmAllowed"
+                      :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
                       @click="startReception"
                     >
                       <span
@@ -840,6 +1001,7 @@ watch(clientsPanelOpen, async open => {
                       <span>{{ starting ? 'Создаём…' : 'Начать' }}</span>
                     </button>
                   </div>
+                  <p v-if="!llmAllowed" class="error-text">{{ INSUFFICIENT_FUNDS_MSG }}</p>
                   <p v-if="error" class="error-text">{{ error }}</p>
                 </div>
               </div>
@@ -867,14 +1029,17 @@ watch(clientsPanelOpen, async open => {
               >
                 <div class="list-item-top">
                   <div class="list-item-title"><strong>{{ c.name }}</strong>, {{ c.age }}</div>
-                  <span
-                    v-if="c.activeSessionId && isClientSessionPaused(c)"
-                    class="session-entry-badge paused"
-                  >Пауза</span>
-                  <span
-                    v-else-if="c.activeSessionId"
-                    class="session-entry-badge live"
-                  >Сеанс</span>
+                  <div class="list-item-badges">
+                    <span class="session-entry-badge progress-badge">{{ therapyProgressLabel(c.therapyProgress) }}</span>
+                    <span
+                      v-if="c.activeSessionId && isClientSessionPaused(c)"
+                      class="session-entry-badge paused"
+                    >Пауза</span>
+                    <span
+                      v-else-if="c.activeSessionId"
+                      class="session-entry-badge live"
+                    >Сеанс</span>
+                  </div>
                 </div>
                 <div class="muted">{{ c.presentingRequest }}</div>
                 <div class="tags">
@@ -945,7 +1110,8 @@ watch(clientsPanelOpen, async open => {
               <button
                 class="btn-text btn-block"
                 type="button"
-                :disabled="caseBusy"
+                :disabled="caseBusy || !llmAllowed"
+                :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
                 @click="generateCaseFromPrompt"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">
@@ -960,7 +1126,8 @@ watch(clientsPanelOpen, async open => {
               <button
                 class="btn-text secondary btn-block"
                 type="button"
-                :disabled="caseBusy"
+                :disabled="caseBusy || !llmAllowed"
+                :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
                 @click="generateCaseAuto"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">
@@ -1086,7 +1253,8 @@ watch(clientsPanelOpen, async open => {
                             type="button"
                             class="toolbar-btn"
                             :class="{ analyzing: starting }"
-                            :disabled="starting"
+                            :disabled="starting || !llmAllowed"
+                            :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
                             @click="startReception"
                           >
                             <span
@@ -1124,14 +1292,17 @@ watch(clientsPanelOpen, async open => {
                     >
                       <div class="list-item-top">
                         <div class="list-item-title"><strong>{{ c.name }}</strong>, {{ c.age }}</div>
-                        <span
-                          v-if="c.activeSessionId && isClientSessionPaused(c)"
-                          class="session-entry-badge paused"
-                        >Пауза</span>
-                        <span
-                          v-else-if="c.activeSessionId"
-                          class="session-entry-badge live"
-                        >Сеанс</span>
+                        <div class="list-item-badges">
+                          <span class="session-entry-badge progress-badge">{{ therapyProgressLabel(c.therapyProgress) }}</span>
+                          <span
+                            v-if="c.activeSessionId && isClientSessionPaused(c)"
+                            class="session-entry-badge paused"
+                          >Пауза</span>
+                          <span
+                            v-else-if="c.activeSessionId"
+                            class="session-entry-badge live"
+                          >Сеанс</span>
+                        </div>
                       </div>
                       <div class="muted">{{ c.presentingRequest }}</div>
                       <div class="tags">
@@ -1152,6 +1323,23 @@ watch(clientsPanelOpen, async open => {
         <div class="notebook-spine" aria-hidden="true"></div>
 
         <div class="page-right page-transition-stage">
+          <div
+            v-if="!llmAllowed"
+            class="balance-block-banner balance-block-banner-page"
+            :class="balanceIsZero ? 'is-warning' : 'is-danger'"
+            role="status"
+          >
+            <span class="material-symbols-outlined balance-block-icon" aria-hidden="true">account_balance_wallet</span>
+            <div class="balance-block-copy">
+              <div class="balance-block-title">
+                {{ balanceIsZero ? 'Баланс исчерпан' : 'Недостаточно средств' }}
+                <strong class="balance-block-amount">{{ formatBalanceRub(displayBalance) }}</strong>
+              </div>
+              <p class="balance-block-text">
+                Функции с ИИ недоступны — попросите администратора пополнить счёт.
+              </p>
+            </div>
+          </div>
           <RouterView v-slot="{ Component, route: r }">
             <Transition
               :name="softPageTransition ? 'page-fade-soft' : 'page-fade'"
@@ -1160,7 +1348,7 @@ watch(clientsPanelOpen, async open => {
               @after-enter="onRouteAfterEnter"
             >
               <div
-                :key="r.name === 'chat' ? r.fullPath : String(r.name || r.path)"
+                :key="r.name === 'chat' ? r.path : String(r.name || r.path)"
                 class="flip-sheet"
               >
                 <component :is="Component" />
@@ -1168,6 +1356,7 @@ watch(clientsPanelOpen, async open => {
             </Transition>
           </RouterView>
         </div>
+      </div>
       </div>
     </div>
   </div>

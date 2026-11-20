@@ -11,7 +11,9 @@ import com.psy.trainer.domain.MessageRole;
 import com.psy.trainer.domain.SessionStatus;
 import com.psy.trainer.domain.TherapistProfile;
 import com.psy.trainer.domain.TherapySession;
+import com.psy.trainer.llm.LlmCallContext;
 import com.psy.trainer.llm.LlmClient;
+import com.psy.trainer.llm.LlmUsageContext;
 import com.psy.trainer.rag.RagService;
 import com.psy.trainer.repo.ClientRepository;
 import com.psy.trainer.repo.MessageRepository;
@@ -77,7 +79,26 @@ public class ReceptionService {
             storedCaseId = caseService.requireAccessible(caseId).getId().toString();
         }
 
-        JsonNode persona = generatePersona(preferred, storedCaseId, preferredGender, preferredAge);
+        // Persist client + session first so persona LLM usage is attributed as client chat.
+        Difficulty seedDifficulty = preferred != null ? preferred : Difficulty.MEDIUM;
+        int seedAge = preferredAge != null ? preferredAge : 30;
+        Client client = clientRepository.save(Client.create(
+                therapist.getId(),
+                "Клиент",
+                seedAge,
+                preferredGender,
+                "Загрузка персоны…",
+                seedDifficulty,
+                new String[]{"ANXIOUS"},
+                new String[]{"избегание"},
+                "{}",
+                storedCaseId,
+                "Загрузка персоны…"
+        ));
+        TherapySession session = sessionRepository.save(TherapySession.start(client.getId(), therapist.getId()));
+        LlmCallContext chatCtx = LlmCallContext.of("chat", client.getId(), session.getId());
+
+        JsonNode persona = generatePersona(preferred, storedCaseId, preferredGender, preferredAge, chatCtx);
         String name = text(persona, "name", "Клиент");
         int age = preferredAge != null ? preferredAge : clampAge(persona.path("age").asInt(30));
         ClientGender gender = preferredGender != null
@@ -90,8 +111,7 @@ public class ReceptionService {
         String opening = text(persona, "openingLine", "Здравствуйте... я немного волнуюсь.");
         String coreProblem = text(persona, "coreProblem", presenting);
 
-        Client client = clientRepository.save(Client.create(
-                therapist.getId(),
+        client.applyGeneratedPersona(
                 name,
                 age,
                 gender,
@@ -100,13 +120,15 @@ public class ReceptionService {
                 tags,
                 defenses,
                 persona.toString(),
-                storedCaseId,
                 coreProblem
-        ));
+        );
+        client = clientRepository.save(client);
 
-        TherapySession session = sessionRepository.save(TherapySession.start(client.getId(), therapist.getId()));
         Message openingMessage = messageRepository.save(Message.of(session.getId(), client.getId(), MessageRole.CLIENT, opening));
-        ragService.indexMessage(openingMessage, therapist.getId());
+        LlmUsageContext.run(
+                chatCtx,
+                () -> ragService.indexMessage(openingMessage, therapist.getId())
+        );
 
         return new Dtos.ReceptionResponse(mapper.toClient(client), mapper.toSession(session), opening);
     }
@@ -130,10 +152,13 @@ public class ReceptionService {
                 MessageRole.SYSTEM,
                 "Начат сеанс №" + sessionNo
         ));
-        String opening = generateReturnOpening(client);
+        String opening = generateReturnOpening(client, session.getId());
         Message openingMessage = messageRepository.save(Message.of(
                 session.getId(), client.getId(), MessageRole.CLIENT, opening));
-        ragService.indexMessage(openingMessage, therapist.getId());
+        LlmUsageContext.run(
+                LlmCallContext.of("chat", client.getId(), session.getId()),
+                () -> ragService.indexMessage(openingMessage, therapist.getId())
+        );
         return mapper.toSession(session);
     }
 
@@ -178,33 +203,36 @@ public class ReceptionService {
         return mapper.toSession(sessionRepository.save(session));
     }
 
-    private String generateReturnOpening(Client client) {
-        String memory = ragService.retrieveClientMemory(client.getId(), client.getPresentingRequest(), 4);
-        String user = """
-                Клиент: %s, %d
-                Запрос: %s
-                Ядро проблемы: %s
-                therapyProgress: %d
-                status: %s
-                Память:
-                %s
-                """.formatted(
-                client.getName(),
-                client.getAge(),
-                client.getPresentingRequest(),
-                client.getCoreProblem() == null ? client.getPresentingRequest() : client.getCoreProblem(),
-                client.getTherapyProgress(),
-                client.getStatus().name(),
-                memory.isBlank() ? "(мало памяти)" : memory
-        );
-        try {
-            return llmClient.chat(List.of(
-                    LlmClient.ChatMessage.system(promptLoader.load("session-return.txt")),
-                    LlmClient.ChatMessage.user(user)
-            )).trim();
-        } catch (Exception e) {
-            return "Здравствуйте… я снова здесь. С прошлого раза много думал(а) о нашем разговоре.";
-        }
+    private String generateReturnOpening(Client client, UUID sessionId) {
+        LlmCallContext usageCtx = LlmCallContext.of("chat", client.getId(), sessionId);
+        return LlmUsageContext.call(usageCtx, () -> {
+            String memory = ragService.retrieveClientMemory(client.getId(), client.getPresentingRequest(), 4);
+            String user = """
+                    Клиент: %s, %d
+                    Запрос: %s
+                    Ядро проблемы: %s
+                    therapyProgress: %d
+                    status: %s
+                    Память:
+                    %s
+                    """.formatted(
+                    client.getName(),
+                    client.getAge(),
+                    client.getPresentingRequest(),
+                    client.getCoreProblem() == null ? client.getPresentingRequest() : client.getCoreProblem(),
+                    client.getTherapyProgress(),
+                    client.getStatus().name(),
+                    memory.isBlank() ? "(мало памяти)" : memory
+            );
+            try {
+                return llmClient.chat(List.of(
+                        LlmClient.ChatMessage.system(promptLoader.load("session-return.txt")),
+                        LlmClient.ChatMessage.user(user)
+                ), usageCtx).trim();
+            } catch (Exception e) {
+                return "Здравствуйте… я снова здесь. С прошлого раза много думал(а) о нашем разговоре.";
+            }
+        });
     }
 
     private void evaluateTherapyProgress(Client client, UUID sessionId) {
@@ -232,11 +260,12 @@ public class ReceptionService {
                 client.getPresentingRequest(),
                 dialog
         );
+        LlmCallContext usageCtx = LlmCallContext.of("progress", client.getId(), sessionId);
         try {
             String raw = llmClient.chatJson(List.of(
                     LlmClient.ChatMessage.system(promptLoader.load("therapy-progress.txt")),
                     LlmClient.ChatMessage.user(user)
-            ));
+            ), usageCtx);
             JsonNode json = objectMapper.readTree(extractJson(raw));
             int progress = json.path("progress").asInt(client.getTherapyProgress());
             boolean resolved = json.path("resolved").asBoolean(false);
@@ -251,7 +280,8 @@ public class ReceptionService {
             Difficulty preferred,
             String caseId,
             ClientGender preferredGender,
-            Integer preferredAge
+            Integer preferredAge,
+            LlmCallContext usageCtx
     ) {
         StringBuilder user = new StringBuilder("Сгенерируй клиента.");
         if (preferredGender != null) {
@@ -279,7 +309,7 @@ public class ReceptionService {
         String raw = llmClient.chatJson(List.of(
                 LlmClient.ChatMessage.system(promptLoader.load("persona-generation.txt")),
                 LlmClient.ChatMessage.user(user.toString())
-        ), "reception");
+        ), usageCtx);
         try {
             String json = extractJson(raw);
             JsonNode node = objectMapper.readTree(json);

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -70,7 +71,8 @@ public class AdminController {
             @RequestParam(required = false) java.time.Instant from,
             @RequestParam(required = false) java.time.Instant to,
             @RequestParam(required = false) String model,
-            @RequestParam(required = false) String source
+            @RequestParam(required = false) String source,
+            @RequestParam(required = false) UUID therapistId
     ) {
         java.time.Instant safeTo = to != null ? to : java.time.Instant.now();
         java.time.Instant safeFrom = from;
@@ -78,7 +80,7 @@ public class AdminController {
             int d = days == null ? 30 : Math.max(1, Math.min(days, 180));
             safeFrom = safeTo.minus(d, java.time.temporal.ChronoUnit.DAYS);
         }
-        return adminService.usage(safeFrom, safeTo, model, source);
+        return adminService.usage(safeFrom, safeTo, model, source, therapistId);
     }
 
     @GetMapping("/users")
@@ -89,5 +91,23 @@ public class AdminController {
     @PostMapping("/users")
     public Dtos.AppUserResponse createUser(@RequestBody Dtos.CreateAppUserRequest request) {
         return adminService.createUser(request);
+    }
+
+    @PostMapping("/users/{id}/balance")
+    public Dtos.AppUserResponse topUpUser(
+            @PathVariable UUID id,
+            @RequestBody Dtos.TopUpBalanceRequest request
+    ) {
+        return adminService.topUpUser(id, request);
+    }
+
+    @GetMapping("/balance/topups")
+    public List<Dtos.BalanceTopUpResponse> topUpHistory() {
+        return adminService.topUpHistory();
+    }
+
+    @GetMapping("/users/{id}/balance/history")
+    public List<Dtos.BalanceTopUpResponse> userTopUpHistory(@PathVariable UUID id) {
+        return adminService.userTopUpHistory(id);
     }
 }

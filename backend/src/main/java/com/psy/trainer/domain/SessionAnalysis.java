@@ -55,8 +55,24 @@ public class SessionAnalysis {
             String rubricJson,
             String alternativesJson
     ) {
+        return create(
+                UUID.randomUUID(), therapistId, clientId, sessionId, scope,
+                reportMd, rubricJson, alternativesJson
+        );
+    }
+
+    public static SessionAnalysis create(
+            UUID id,
+            UUID therapistId,
+            UUID clientId,
+            UUID sessionId,
+            AnalysisScope scope,
+            String reportMd,
+            String rubricJson,
+            String alternativesJson
+    ) {
         SessionAnalysis a = new SessionAnalysis();
-        a.id = UUID.randomUUID();
+        a.id = id == null ? UUID.randomUUID() : id;
         a.therapistId = therapistId;
         a.clientId = clientId;
         a.sessionId = sessionId;

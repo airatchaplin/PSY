@@ -16,4 +16,6 @@ public interface SessionAnalysisRepository extends JpaRepository<SessionAnalysis
     Optional<SessionAnalysis> findFirstBySessionIdAndScopeOrderByCreatedAtDesc(UUID sessionId, AnalysisScope scope);
 
     List<SessionAnalysis> findByClientIdAndScopeOrderByCreatedAtDesc(UUID clientId, AnalysisScope scope);
+
+    Optional<SessionAnalysis> findByIdAndTherapistIdAndScope(UUID id, UUID therapistId, AnalysisScope scope);
 }

@@ -6,6 +6,8 @@ import AiWorkingBlock from '../components/AiWorkingBlock.vue'
 import { casesShareNotice, casesVersion } from '../casesUi'
 import { closeLeftPanelOnMobile } from '../sessionUi'
 import { difficultyLabel, tagCode, tagLabel } from '../labels'
+import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
+import { llmAllowed, setMeProfile } from '../meProfile'
 import type { CaseItem, GenderPreference } from '../types'
 
 const cases = ref<CaseItem[]>([])
@@ -54,6 +56,10 @@ function clampAge() {
 async function confirmStart() {
   const c = startFor.value
   if (!c || busy.value) return
+  if (!llmAllowed.value) {
+    error.value = INSUFFICIENT_FUNDS_MSG
+    return
+  }
   if (!ageAny.value) clampAge()
   busy.value = true
   error.value = ''
@@ -67,9 +73,11 @@ async function confirmStart() {
     })
     closeStart()
     closeLeftPanelOnMobile({ instant: true })
+    try { setMeProfile(await api.me()) } catch { /* ignore */ }
     await router.push(`/clients/${reception.client.id}`)
   } catch (e) {
-    error.value = String(e)
+    error.value = apiErrorMessage(e)
+    try { setMeProfile(await api.me()) } catch { /* ignore */ }
   } finally {
     busy.value = false
   }
@@ -151,7 +159,7 @@ function sourceLabel(c: CaseItem) {
             type="button"
             title="Начать"
             aria-label="Начать"
-            :disabled="busy"
+            :disabled="busy || !llmAllowed"
             @click="openStart(c)"
           >
             <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
@@ -214,7 +222,8 @@ function sourceLabel(c: CaseItem) {
               type="button"
               class="toolbar-btn"
               :class="{ analyzing: busy }"
-              :disabled="busy"
+              :disabled="busy || !llmAllowed"
+              :title="llmAllowed ? undefined : INSUFFICIENT_FUNDS_MSG"
               @click="confirmStart"
             >
               <span

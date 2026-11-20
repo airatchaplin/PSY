@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { setMeProfile } from '../meProfile'
 
 const TOKEN_STORAGE_KEY = 'psy.auth.token'
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8081').replace(/\/$/, '')
@@ -52,19 +53,41 @@ function persistToken(token: string, expiresIn?: number) {
           return typeof exp === 'number' ? exp * 1000 : undefined
         })()
   const payload: StoredAuth = { accessToken: token, expiresAt }
-  sessionStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(payload))
+  // localStorage so PWA / «На экран Домой» keeps the session across contexts.
+  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(payload))
+  try {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
 }
 
 function clearStoredToken() {
-  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+  try {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  } catch {
+    /* ignore */
+  }
 }
 
 function loadStored(): StoredAuth | null {
   try {
-    const raw = sessionStorage.getItem(TOKEN_STORAGE_KEY)
+    const raw =
+      localStorage.getItem(TOKEN_STORAGE_KEY)
+      ?? sessionStorage.getItem(TOKEN_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as StoredAuth
     if (!parsed?.accessToken) return null
+    // Migrate legacy sessionStorage → localStorage.
+    if (!localStorage.getItem(TOKEN_STORAGE_KEY)) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, raw)
+      try {
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      } catch {
+        /* ignore */
+      }
+    }
     return parsed
   } catch {
     return null
@@ -165,6 +188,7 @@ export function logout() {
   tokenParsed = undefined
   authenticated.value = false
   isAdmin.value = false
+  setMeProfile(null)
   if (refreshTimer) window.clearInterval(refreshTimer)
   window.location.assign('/')
 }

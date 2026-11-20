@@ -7,7 +7,9 @@ import com.psy.trainer.domain.MessageRole;
 import com.psy.trainer.domain.SessionStatus;
 import com.psy.trainer.domain.TherapistProfile;
 import com.psy.trainer.domain.TherapySession;
+import com.psy.trainer.llm.LlmCallContext;
 import com.psy.trainer.llm.LlmClient;
+import com.psy.trainer.llm.LlmUsageContext;
 import com.psy.trainer.rag.RagService;
 import com.psy.trainer.repo.ClientRepository;
 import com.psy.trainer.repo.MessageRepository;
@@ -122,15 +124,18 @@ public class ChatService {
     }
 
     private Dtos.MessageResponse exchange(Context ctx, String therapistText) {
-        Message therapistMsg = messageRepository.save(Message.of(
-                ctx.session().getId(), ctx.client().getId(), MessageRole.THERAPIST, therapistText));
-        ragService.indexMessage(therapistMsg, ctx.therapist().getId());
+        LlmCallContext usageCtx = LlmCallContext.of("chat", ctx.client().getId(), ctx.session().getId());
+        return LlmUsageContext.call(usageCtx, () -> {
+            Message therapistMsg = messageRepository.save(Message.of(
+                    ctx.session().getId(), ctx.client().getId(), MessageRole.THERAPIST, therapistText));
+            ragService.indexMessage(therapistMsg, ctx.therapist().getId());
 
-        String reply = llmClient.chat(buildClientMessages(ctx.client(), therapistText));
-        Message clientMsg = messageRepository.save(Message.of(
-                ctx.session().getId(), ctx.client().getId(), MessageRole.CLIENT, reply));
-        ragService.indexMessage(clientMsg, ctx.therapist().getId());
-        return mapper.toMessage(clientMsg);
+            String reply = llmClient.chat(buildClientMessages(ctx.client(), therapistText), usageCtx);
+            Message clientMsg = messageRepository.save(Message.of(
+                    ctx.session().getId(), ctx.client().getId(), MessageRole.CLIENT, reply));
+            ragService.indexMessage(clientMsg, ctx.therapist().getId());
+            return mapper.toMessage(clientMsg);
+        });
     }
 
     public Flux<String> sendStream(UUID sessionId, String content) {
@@ -138,22 +143,36 @@ public class ChatService {
             return Flux.error(new BadRequestException("Пустое сообщение"));
         }
         Context ctx = loadActive(sessionId);
+        LlmCallContext usageCtx = LlmCallContext.of("chat", ctx.client().getId(), ctx.session().getId());
         Message therapistMsg = messageRepository.save(Message.of(
                 ctx.session().getId(), ctx.client().getId(), MessageRole.THERAPIST, content.trim()));
-        ragService.indexMessage(therapistMsg, ctx.therapist().getId());
+        // Index embeddings under chat context (blocking path before stream).
+        LlmUsageContext.run(usageCtx, () -> ragService.indexMessage(therapistMsg, ctx.therapist().getId()));
 
         StringBuilder acc = new StringBuilder();
-        return llmClient.chatStream(buildClientMessages(ctx.client(), content.trim()))
+        return llmClient.chatStream(buildClientMessages(ctx.client(), content.trim(), usageCtx), usageCtx)
                 .doOnNext(acc::append)
                 .doOnComplete(() -> {
                     Message clientMsg = messageRepository.save(Message.of(
                             ctx.session().getId(), ctx.client().getId(), MessageRole.CLIENT, acc.toString()));
-                    ragService.indexMessage(clientMsg, ctx.therapist().getId());
+                    LlmUsageContext.run(usageCtx, () ->
+                            ragService.indexMessage(clientMsg, ctx.therapist().getId()));
                 });
     }
 
     private List<LlmClient.ChatMessage> buildClientMessages(Client client, String latestTherapistText) {
-        String memory = ragService.retrieveClientMemory(client.getId(), latestTherapistText, 5);
+        return buildClientMessages(client, latestTherapistText, null);
+    }
+
+    private List<LlmClient.ChatMessage> buildClientMessages(
+            Client client,
+            String latestTherapistText,
+            LlmCallContext usageCtx
+    ) {
+        String memory = usageCtx == null
+                ? ragService.retrieveClientMemory(client.getId(), latestTherapistText, 5)
+                : LlmUsageContext.call(usageCtx,
+                        () -> ragService.retrieveClientMemory(client.getId(), latestTherapistText, 5));
         List<Message> recent = messageRepository.findTop40ByClientIdOrderByCreatedAtDesc(client.getId());
         Collections.reverse(recent);
 

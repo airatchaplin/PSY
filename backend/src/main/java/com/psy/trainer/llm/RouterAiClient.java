@@ -57,6 +57,10 @@ public class RouterAiClient {
         );
     }
 
+    private final java.util.concurrent.ConcurrentHashMap<String, ModelInfo> modelCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile long modelCacheAtMs = 0L;
+
     public List<ModelInfo> listModels() {
         ensureApiKey();
         JsonNode data = get("/models").path("data");
@@ -66,15 +70,37 @@ public class RouterAiClient {
         }
         for (JsonNode n : data) {
             JsonNode pricing = n.path("pricing");
-            out.add(new ModelInfo(
+            ModelInfo info = new ModelInfo(
                     n.path("id").asText(),
                     n.path("name").asText(n.path("id").asText()),
                     n.path("context_length").isNumber() ? n.path("context_length").asInt() : null,
                     decimalOrNull(pricing.path("prompt")),
                     decimalOrNull(pricing.path("completion"))
-            ));
+            );
+            out.add(info);
+            if (info.id() != null && !info.id().isBlank()) {
+                modelCache.put(info.id(), info);
+            }
         }
+        modelCacheAtMs = System.currentTimeMillis();
         return out;
+    }
+
+    /** Prompt price per token (₽), cached from /models. */
+    public BigDecimal promptPricePerToken(String modelId) {
+        if (modelId == null || modelId.isBlank()) {
+            return null;
+        }
+        ModelInfo cached = modelCache.get(modelId);
+        if (cached == null || System.currentTimeMillis() - modelCacheAtMs > 10 * 60_000L) {
+            try {
+                listModels();
+            } catch (Exception ignored) {
+                // keep stale cache if refresh fails
+            }
+            cached = modelCache.get(modelId);
+        }
+        return cached == null ? null : cached.promptPricePerToken();
     }
 
     private static BigDecimal decimalOrNull(JsonNode node) {
