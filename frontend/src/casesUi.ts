@@ -32,6 +32,11 @@ export function setCasesMobileTab(tab: CasesMobileTab) {
   casesMobileTab.value = tab
 }
 
+export const casesNavItems: { id: CasesMobileTab; label: string; icon: string }[] = [
+  { id: 'new', label: 'Новый', icon: 'add_circle' },
+  { id: 'library', label: 'Библиотека', icon: 'menu_book' }
+]
+
 export function resetCasesMobileTab() {
   casesMobileTab.value = 'new'
 }

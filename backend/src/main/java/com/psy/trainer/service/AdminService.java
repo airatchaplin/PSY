@@ -83,20 +83,57 @@ public class AdminService {
                 runtimeConfigService.hasApiKey(),
                 billingError,
                 ACTIVITY_URL,
-                DOCS_URL
+                DOCS_URL,
+                runtimeConfigService.isTtsEnabled(),
+                runtimeConfigService.getTtsModel(),
+                runtimeConfigService.isSttEnabled(),
+                runtimeConfigService.getSttModel()
         );
+    }
+
+    @Transactional
+    public Dtos.AdminOverviewResponse updateTts(Dtos.UpdateTtsSettingsRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Пустой запрос");
+        }
+        // Availability is user-controlled in profile; admin only stores the model.
+        runtimeConfigService.setTtsSettings(true, request.model());
+        return overview();
+    }
+
+    @Transactional
+    public Dtos.AdminOverviewResponse updateStt(Dtos.UpdateSttSettingsRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Пустой запрос");
+        }
+        runtimeConfigService.setSttSettings(true, request.model());
+        return overview();
     }
 
     public List<Dtos.AdminModelOption> models() {
         return routerAiClient.listModels().stream()
-                .map(m -> new Dtos.AdminModelOption(
-                        m.id(),
-                        m.name(),
-                        m.contextLength(),
-                        per1m(m.promptPricePerToken()),
-                        per1m(m.completionPricePerToken())
-                ))
+                .map(m -> {
+                    // PSY TTS plays mp3; Gemini TTS is pcm-only — hide from TTS picker.
+                    boolean tts = m.isSpeechTts() && !isGeminiPcmOnlyTts(m.id());
+                    return new Dtos.AdminModelOption(
+                            m.id(),
+                            m.name(),
+                            m.contextLength(),
+                            per1m(m.promptPricePerToken()),
+                            per1m(m.completionPricePerToken()),
+                            m.outputModalities() == null ? List.of() : m.outputModalities(),
+                            tts,
+                            m.isEmbedding(),
+                            m.isTranscriptionStt()
+                    );
+                })
                 .toList();
+    }
+
+    private static boolean isGeminiPcmOnlyTts(String id) {
+        if (id == null) return false;
+        String s = id.toLowerCase();
+        return s.contains("gemini") && s.contains("tts");
     }
 
     private static BigDecimal per1m(BigDecimal perToken) {

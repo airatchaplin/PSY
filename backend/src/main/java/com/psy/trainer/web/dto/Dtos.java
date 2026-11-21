@@ -32,8 +32,19 @@ public final class Dtos {
             /** RouterAI /credits — only for admins; null for therapists. */
             BigDecimal appBalanceRub,
             /** Sum of all app_user.balance_rub — only for admins. */
-            BigDecimal usersBalanceTotalRub
+            BigDecimal usersBalanceTotalRub,
+            /** Admin made TTS available (model configured / allowed). */
+            boolean ttsAvailable,
+            /** User preference: cloud TTS of client messages. */
+            boolean ttsEnabled,
+            /** Admin made STT available. */
+            boolean sttAvailable,
+            /** User preference: cloud STT voice input. */
+            boolean sttEnabled
     ) {
+    }
+
+    public record UpdateVoiceSettingsRequest(Boolean ttsEnabled, Boolean sttEnabled) {
     }
 
     /**
@@ -239,8 +250,21 @@ public final class Dtos {
             boolean apiKeyConfigured,
             String billingError,
             String activityUrl,
-            String docsUrl
+            String docsUrl,
+            boolean ttsEnabled,
+            String ttsModel,
+            boolean sttEnabled,
+            String sttModel
     ) {
+    }
+
+    public record UpdateTtsSettingsRequest(Boolean enabled, String model) {
+    }
+
+    public record UpdateSttSettingsRequest(Boolean enabled, String model) {
+    }
+
+    public record SttResponse(String text) {
     }
 
     public record AdminModelOption(
@@ -248,7 +272,12 @@ public final class Dtos {
             String name,
             Integer contextLength,
             BigDecimal promptPer1mRub,
-            BigDecimal completionPer1mRub
+            BigDecimal completionPer1mRub,
+            /** Lowercase output modalities from RouterAI (text, audio, …). */
+            List<String> outputModalities,
+            boolean tts,
+            boolean embedding,
+            boolean stt
     ) {
     }
 

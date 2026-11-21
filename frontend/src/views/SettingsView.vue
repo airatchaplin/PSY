@@ -20,6 +20,7 @@ import {
   promptPwaInstall,
   showIosInstallHint
 } from '../pwa'
+import { openHubMenu } from '../hubMenu'
 import {
   settingsNavItems,
   settingsSection,
@@ -40,6 +41,8 @@ import { usageChatRoute } from '../usageNav'
 const router = useRouter()
 
 const me = ref<Me | null>(null)
+const voiceSaving = ref(false)
+const voiceMsg = ref('')
 const balanceHistory = ref<BalanceTopUp[]>([])
 const historyLoading = ref(false)
 const usage = ref<AdminUsageStats | null>(null)
@@ -66,7 +69,7 @@ const installMsg = ref('')
 const sectionTitles: Record<SettingsSection, { title: string; sub: string }> = {
   profile: {
     title: 'Профиль',
-    sub: 'Аккаунт, баланс и сессия.'
+    sub: 'Аккаунт, голос, баланс и сессия.'
   },
   themes: {
     title: 'Темы',
@@ -113,6 +116,29 @@ watch(
     void loadUsage()
   }
 )
+
+async function saveVoiceSettings(patch: { ttsEnabled?: boolean; sttEnabled?: boolean }) {
+  if (!me.value || voiceSaving.value) return
+  voiceSaving.value = true
+  voiceMsg.value = ''
+  try {
+    me.value = await api.updateVoiceSettings(patch)
+    setMeProfile(me.value)
+    voiceMsg.value = 'Сохранено'
+  } catch (e) {
+    voiceMsg.value = e instanceof Error ? e.message : 'Не удалось сохранить'
+  } finally {
+    voiceSaving.value = false
+  }
+}
+
+function onTtsPrefChange(checked: boolean) {
+  void saveVoiceSettings({ ttsEnabled: checked })
+}
+
+function onSttPrefChange(checked: boolean) {
+  void saveVoiceSettings({ sttEnabled: checked })
+}
 
 async function loadBalanceHistory() {
   historyLoading.value = true
@@ -373,13 +399,28 @@ async function installApp() {
     </div>
   </Teleport>
 
-  <div class="settings-page page-scroll">
-    <div class="page-head compact">
-      <div class="section-label">Настройки</div>
-      <h2 class="page-title">{{ head.title }}</h2>
-      <p class="page-sub">{{ head.sub }}</p>
-    </div>
+  <div class="settings-page">
+    <header class="page-head compact hub-sticky-head">
+      <div class="hub-sticky-head-row">
+        <button
+          type="button"
+          class="hub-section-menu-btn"
+          aria-haspopup="menu"
+          aria-label="Разделы профиля"
+          title="Разделы"
+          @click="openHubMenu('settings')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+        </button>
+        <div class="hub-sticky-head-copy">
+          <div class="section-label">Настройки</div>
+          <h2 class="page-title">{{ head.title }}</h2>
+          <p class="page-sub">{{ head.sub }}</p>
+        </div>
+      </div>
+    </header>
 
+    <div class="settings-body page-scroll">
     <section v-show="settingsSection === 'profile'" class="settings-section">
       <div class="section-label">Аккаунт</div>
       <div class="settings-account">
@@ -452,6 +493,30 @@ async function installApp() {
       </template>
 
       <p v-if="installMsg" class="muted settings-install-msg">{{ installMsg }}</p>
+
+      <div class="section-label" style="margin-top: 12px">Голос</div>
+      <p class="muted settings-hint settings-paid-warn">
+        Озвучка и голосовой ввод — платные услуги: каждый запрос списывается с вашего баланса.
+      </p>
+      <label class="admin-field admin-field-check">
+        <input
+          type="checkbox"
+          :checked="!!me?.ttsEnabled"
+          :disabled="voiceSaving"
+          @change="onTtsPrefChange(($event.target as HTMLInputElement).checked)"
+        />
+        <span>Включить озвучку сообщений клиента</span>
+      </label>
+      <label class="admin-field admin-field-check">
+        <input
+          type="checkbox"
+          :checked="!!me?.sttEnabled"
+          :disabled="voiceSaving"
+          @change="onSttPrefChange(($event.target as HTMLInputElement).checked)"
+        />
+        <span>Включить голосовой ввод в чате</span>
+      </label>
+      <p v-if="voiceMsg" class="muted settings-hint">{{ voiceMsg }}</p>
 
       <div class="section-label" style="margin-top: 12px">Сессия</div>
       <button type="button" class="toolbar-btn danger-outline" @click="logout">
@@ -912,5 +977,6 @@ async function installApp() {
       </div>
 
     </section>
+    </div>
   </div>
 </template>

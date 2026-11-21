@@ -41,6 +41,8 @@ const USAGE_SOURCE_LABELS: Record<string, string> = {
   progress: 'Прогресс терапии',
   case: 'Генерация кейса',
   embed: 'Память и поиск (векторный индекс)',
+  tts: 'Озвучка клиента',
+  stt: 'Голосовой ввод',
   json: 'JSON / прочее',
   prompt: 'Промпт'
 }
@@ -51,7 +53,9 @@ const USAGE_SOURCE_LABELS_SESSION: Record<string, string> = {
   stream: 'Чат с клиентом',
   reception: 'Чат с клиентом',
   session_return: 'Чат с клиентом',
-  analysis_session: 'Анализ сеанса'
+  analysis_session: 'Анализ сеанса',
+  tts: 'Озвучка',
+  stt: 'Голосовой ввод'
 }
 
 export type UsageSourceLabelScope = 'client' | 'session'

@@ -357,6 +357,12 @@ a { color: inherit; text-decoration: none; }
 .notebook.admin-page {
   overflow: visible;
 }
+/* Keep notebook as grid even though inner views reuse .settings-page / .admin-page */
+.notebook.settings-page,
+.notebook.admin-page {
+  display: grid;
+  flex-direction: unset;
+}
 .notebook.single {
   grid-template-columns: 1fr;
 }
@@ -791,17 +797,36 @@ a { color: inherit; text-decoration: none; }
 .notebook.chat-spread .page-right {
   background: var(--panel-progress);
 }
-.progress-stats .page-head-row {
+.progress-stats-page {
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-}
-.progress-stats .page-head-row .page-head {
-  min-width: 0;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
 }
-.progress-stats .page-head-row .toolbar-btn {
-  flex-shrink: 0;
+.progress-stats-page .progress-stats.page-scroll {
+  flex: 1;
+  min-height: 0;
+}
+.progress-analyses-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.progress-hub-head .progress-analyze-btn {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+.progress-analysis-back-mobile {
+  display: none;
+}
+/* Desktop: analyses keep original left labels; mobile sticky head is for phone only */
+.progress-recent .progress-hub-head {
+  display: none;
 }
 .analysis-block {
   margin-top: 12px;
@@ -1771,6 +1796,52 @@ h1, h2, h3 {
   white-space: pre-wrap;
   animation: bubbleIn var(--dur-med) var(--ease) both;
 }
+.bubble-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bubble-tts {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+  opacity: 0.72;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bubble-tts:hover,
+.bubble-tts:focus-visible {
+  opacity: 1;
+  outline: none;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.bubble-tts.active,
+.bubble-tts.loading {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+.bubble-tts:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.bubble-tts .material-symbols-outlined {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.bubble-tts.loading .material-symbols-outlined {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 .bubble.THERAPIST {
   align-self: flex-end;
   background: var(--bubble-therapist);
@@ -1778,6 +1849,9 @@ h1, h2, h3 {
   border-radius: 18px 18px 4px 18px;
 }
 .bubble.CLIENT {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   align-self: flex-start;
   background: var(--bubble-client);
   color: var(--bubble-client-ink);
@@ -1924,13 +1998,33 @@ select.field:focus {
   min-height: 40px;
   max-height: 40px;
   padding: 0;
-  border-radius: var(--btn-radius, 14px);
+  border: none;
+  border-radius: 999px;
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
   box-shadow: var(--btn-shadow);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.15s var(--ease, ease),
+    color 0.15s var(--ease, ease),
+    transform 0.15s var(--ease, ease),
+    box-shadow 0.15s var(--ease, ease);
+}
+/* Telegram-style: empty field → mic */
+.composer-send.is-mic {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+.composer-send.recording {
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+.composer-send.busy .material-symbols-outlined {
+  animation: spin 0.9s linear infinite;
 }
 .composer-send .material-symbols-outlined,
 .notes-composer-save .material-symbols-outlined {
@@ -1948,6 +2042,7 @@ select.field:focus {
   opacity: 0.4;
   transform: none;
   box-shadow: none;
+  cursor: default;
 }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -3946,7 +4041,9 @@ button.fab.mini.open {
     min-height: 0;
   }
   .session-split > .chat,
-  .session-split > .chat.chat-full {
+  .session-split > .chat.chat-full,
+  .supervisor-side,
+  .session-split.with-supervisor .supervisor-side {
     padding: 8px 0 0;
     border-radius: 0;
     border-left: 0;
@@ -3956,11 +4053,18 @@ button.fab.mini.open {
     min-height: 0;
   }
   .chat-full > .pane-head,
-  .messages-full {
+  .messages-full,
+  .supervisor-side > .pane-head,
+  .supervisor-side-messages {
     padding-left: 10px;
     padding-right: 10px;
   }
-  .messages.messages-full {
+  /* Same floating composer strip as client chat */
+  .supervisor-composer {
+    margin-top: 0;
+  }
+  .messages.messages-full,
+  .supervisor-side-messages {
     flex: 1 1 auto;
     height: auto;
     min-height: 0;
@@ -4683,6 +4787,7 @@ button.fab.mini.open {
   .notebook.home-page,
   .notebook.clients-picker-page,
   .notebook.settings-page,
+  .notebook.admin-page,
   .notebook.session-mode,
   .notebook.chat-spread {
     background: var(--panel-progress);
@@ -4736,13 +4841,32 @@ button.fab.mini.open {
     margin: 0;
     box-sizing: border-box;
   }
-  .notebook.progress-page.progress-tab-clients .progress-recent {
+  .notebook.progress-page.progress-tab-clients .progress-recent .progress-hub-head {
+    display: block;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+    background: color-mix(in srgb, var(--panel-progress) 88%, transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  }
+  .notebook.progress-page.progress-tab-clients .progress-hub-head .hub-section-menu-btn {
+    display: inline-flex;
+  }
+  .notebook.progress-page.progress-tab-clients .progress-analyses-desktop-label,
+  .notebook.progress-page.progress-tab-clients .progress-analysis-head-desktop {
+    display: none;
+  }
+  .notebook.progress-page.progress-tab-clients .progress-analysis-back-mobile {
+    display: inline-flex;
+    margin-bottom: 10px;
+  }
+  .notebook.progress-page.progress-tab-clients .progress-analyses-body {
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(96px + env(safe-area-inset-bottom, 0px));
-  }
-  .notebook.progress-page.progress-tab-clients .progress-recent .left-scroll-label {
-    margin-bottom: 10px;
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
   }
   .notebook.progress-page.progress-tab-clients .progress-recent .segmented-list {
     flex: none;
@@ -4754,14 +4878,13 @@ button.fab.mini.open {
   .notebook.progress-page.progress-tab-clients .progress-analysis-picker {
     max-height: none;
   }
-  .notebook.progress-page.progress-tab-clients .progress-analyses--detail {
-    overflow: hidden;
+  .notebook.progress-page.progress-tab-clients .progress-analyses--detail .progress-analyses-body {
+    display: flex;
+    flex-direction: column;
   }
   .notebook.progress-page.progress-tab-clients .progress-analyses--detail .progress-analysis-detail {
     flex: 1;
     min-height: 0;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
   }
   .notebook.progress-page.progress-tab-stats .page-left {
     pointer-events: none;
@@ -4804,12 +4927,32 @@ button.fab.mini.open {
     border-radius: 0;
     background: transparent;
   }
-  .notebook.progress-page.progress-tab-stats .page-scroll {
+  .notebook.progress-page.progress-tab-stats .progress-stats-page {
     height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+  .notebook.progress-page.progress-tab-stats .progress-hub-head {
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+    background: color-mix(in srgb, var(--panel-progress) 88%, transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  }
+  .notebook.progress-page.progress-tab-stats .progress-hub-head .hub-section-menu-btn {
+    display: inline-flex;
+  }
+  .notebook.progress-page.progress-tab-stats .progress-hub-head .progress-analyze-btn {
+    max-width: none;
+  }
+  .notebook.progress-page.progress-tab-stats .page-scroll {
+    flex: 1;
+    min-height: 0;
+    height: auto;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .fab.mini {
@@ -4873,7 +5016,9 @@ button.fab.mini.open {
   .notebook.cases-page.cases-tab-new .page-left,
   .notebook.cases-page.cases-tab-library .page-right,
   .notebook.progress-page.progress-tab-clients .page-left,
-  .notebook.progress-page.progress-tab-stats .page-right {
+  .notebook.progress-page.progress-tab-stats .page-right,
+  .notebook.settings-page .page-right,
+  .notebook.admin-page .page-right {
     padding: 0;
   }
   .notebook.session-mode .page-right,
@@ -4927,7 +5072,10 @@ button.fab.mini.open {
     padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px) + 160px) !important;
   }
   .notebook.progress-page.progress-tab-clients .progress-recent {
-    padding: calc(10px + env(safe-area-inset-top, 0px)) 10px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 0;
+  }
+  .notebook.progress-page.progress-tab-clients .progress-analyses-body {
+    padding: 12px 10px calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .notes-left-panel .notes-composer {
     left: 10px;
@@ -4974,14 +5122,11 @@ button.fab.mini.open {
   }
 
   .session-split > .chat,
-  .session-split > .chat.chat-full {
-    border-radius: 0;
-    padding: 8px 0 0;
-  }
+  .session-split > .chat.chat-full,
   .supervisor-side,
   .session-split.with-supervisor .supervisor-side {
     border-radius: 0;
-    padding: 10px 12px;
+    padding: 8px 0 0;
   }
   .stats {
     grid-template-columns: 1fr 1fr;
@@ -5004,7 +5149,12 @@ button.fab.mini.open {
 
 /* Profile / theme settings */
 .settings-hub-left {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
 }
 .settings-nav {
   display: flex;
@@ -5046,10 +5196,63 @@ button.fab.mini.open {
   border-radius: 16px;
   background: var(--md-sys-color-surface-container);
 }
-.settings-page.page-scroll {
+/* Inner view roots only — never match .notebook.settings-page / .notebook.admin-page
+   (same class names on the notebook would override display:grid → stacked pages). */
+.flip-sheet > .settings-page,
+.flip-sheet > .admin-page {
   width: 100%;
   height: 100%;
+  min-height: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.flip-sheet > .settings-page .settings-body.page-scroll,
+.flip-sheet > .admin-page .admin-body.page-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Sticky section head + ⋮ menu (mobile primary; desktop keeps left nav) */
+.hub-sticky-head {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 6;
+}
+.hub-sticky-head-row {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: 8px;
+}
+.hub-sticky-head-copy {
+  flex: 1;
+  min-width: 0;
+}
+.hub-section-menu-btn {
+  display: none;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, transparent);
+  color: var(--md-sys-color-on-surface);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hub-section-menu-btn .material-symbols-outlined {
+  font-size: 1.35rem;
+}
+.hub-section-menu-backdrop,
+.hub-section-menu {
+  display: none;
 }
 .settings-section {
   margin-top: 22px;
@@ -5095,6 +5298,11 @@ button.fab.mini.open {
   margin: 0;
   font-size: 0.88rem;
 }
+.settings-paid-warn {
+  color: color-mix(in srgb, var(--md-sys-color-error) 72%, var(--md-sys-color-on-surface-variant));
+  margin: 0 0 10px;
+}
+
 .settings-account {
   display: flex;
   align-items: center;
@@ -5201,47 +5409,8 @@ button.fab.mini.open {
 }
 
 @media (max-width: 900px) {
-  .notebook.settings-page {
-    position: relative;
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    height: 100%;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-  }
-  .notebook.settings-page .page-left,
-  .notebook.settings-page .notebook-spine {
-    display: none !important;
-  }
-  .notebook.settings-page .page-right {
-    grid-row: 1;
-    grid-column: 1;
-    border-radius: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background: var(--panel-progress);
-  }
-  .notebook.settings-page .page-transition-stage,
-  .notebook.settings-page .flip-sheet {
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-    background: transparent;
-  }
-  .notebook.settings-page .settings-page.page-scroll {
-    height: 100%;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-    box-sizing: border-box;
-  }
-
+  /* Settings / Admin: same edge-to-edge scroll as progress-stats */
+  .notebook.settings-page,
   .notebook.admin-page {
     position: relative;
     flex: 1;
@@ -5250,39 +5419,165 @@ button.fab.mini.open {
     height: 100%;
     grid-template-columns: 1fr !important;
     grid-template-rows: minmax(0, 1fr) !important;
+    background: var(--panel-progress);
   }
+  .notebook.settings-page .page-left,
+  .notebook.settings-page .notebook-spine,
+  .notebook.admin-page .page-left,
   .notebook.admin-page .notebook-spine {
     display: none !important;
   }
-  /* Mobile: section switch via glass dots pill + swipe (hide left nav). */
-  .notebook.admin-page .page-left {
-    display: none !important;
-  }
+  .notebook.settings-page .page-right,
   .notebook.admin-page .page-right {
     grid-row: 1;
     grid-column: 1;
+    inset: 0;
     border-radius: 0;
+    box-shadow: none;
     width: 100%;
     height: 100%;
     min-height: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 14px 14px calc(100px + env(safe-area-inset-bottom, 0px));
+    padding: 0;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    background: var(--panel-progress);
   }
+  .notebook.settings-page .page-transition-stage,
+  .notebook.settings-page .flip-sheet,
   .notebook.admin-page .page-transition-stage,
   .notebook.admin-page .flip-sheet {
     flex: 1;
     min-height: 0;
     height: 100%;
+    width: 100%;
+    border-radius: 0;
+    background: transparent;
   }
-  .notebook.admin-page .admin-page.page-scroll {
+  .notebook.settings-page .settings-page,
+  .notebook.admin-page .admin-page {
     height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  .notebook.settings-page .hub-sticky-head,
+  .notebook.admin-page .hub-sticky-head {
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+    background: color-mix(in srgb, var(--panel-progress) 88%, transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  }
+  .notebook.settings-page .hub-section-menu-btn,
+  .notebook.admin-page .hub-section-menu-btn,
+  .notebook.progress-page .hub-section-menu-btn,
+  .notebook.cases-page .hub-section-menu-btn,
+  .notebook.session-mode .hub-section-menu-btn,
+  .notebook.chat-spread .hub-section-menu-btn,
+  .notebook.clients-picker-page .hub-section-menu-btn,
+  .notebook.home-page .hub-section-menu-btn {
+    display: inline-flex;
+  }
+  .clients-search-row .hub-section-menu-btn {
+    flex: 0 0 40px;
+  }
+  .session-bar-actions-side .hub-section-menu-btn {
+    flex: 0 0 40px;
+  }
+  .notebook.cases-page.cases-tab-library .cases-library-page {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .notebook.cases-page.cases-tab-library .cases-hub-head,
+  .notebook.cases-page.cases-tab-new .cases-hub-head {
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+    background: color-mix(in srgb, var(--panel-progress) 88%, transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  }
+  .notebook.cases-page.cases-tab-library .cases-library-body.page-scroll {
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
+  }
+  /* Bottom sheet (teleported to body) — tap dimmed area to dismiss */
+  .hub-section-menu-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 52%, transparent);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hub-section-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 121;
+    max-height: min(72vh, 520px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    background: var(--md-sys-color-surface-container-high);
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 70%, transparent);
+    border-bottom: 0;
+    box-shadow: 0 -12px 36px color-mix(in srgb, var(--md-sys-color-on-surface) 18%, transparent);
+  }
+  .hub-section-menu::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 2px auto 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--md-sys-color-outline) 55%, transparent);
+    flex: 0 0 auto;
+  }
+  .hub-section-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+  .hub-section-menu-item .material-symbols-outlined {
+    font-size: 1.2rem;
+  }
+  .hub-section-menu-item.active {
+    background: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent);
+  }
+  .notebook.settings-page .settings-page .settings-body.page-scroll,
+  .notebook.admin-page .admin-page .admin-body.page-scroll {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .admin-app-balance-mobile {
     display: flex;
@@ -5290,7 +5585,148 @@ button.fab.mini.open {
 }
 
 .admin-hub-left {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Desktop: classic two-page notebook (left + spine + right) — override any mobile tab classes */
+@media (min-width: 901px) {
+  .notebook.settings-page,
+  .notebook.admin-page,
+  .notebook.progress-page,
+  .notebook.cases-page {
+    display: grid !important;
+    flex-direction: unset;
+    grid-template-columns: minmax(280px, 0.95fr) 18px minmax(360px, 1.2fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    background: var(--notebook-bg);
+  }
+  .notebook.settings-page .page-left,
+  .notebook.admin-page .page-left,
+  .notebook.progress-page .page-left,
+  .notebook.progress-page.progress-tab-stats .page-left,
+  .notebook.progress-page.progress-tab-clients .page-left,
+  .notebook.cases-page .page-left,
+  .notebook.cases-page.cases-tab-new .page-left,
+  .notebook.cases-page.cases-tab-library .page-left {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: auto !important;
+    height: 100% !important;
+    max-height: none !important;
+    border-radius: 28px 0 0 28px !important;
+    padding: 20px 22px !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+    box-shadow: inset -8px 0 16px color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+  }
+  .notebook.settings-page .notebook-spine,
+  .notebook.admin-page .notebook-spine,
+  .notebook.progress-page .notebook-spine,
+  .notebook.cases-page .notebook-spine {
+    display: grid !important;
+  }
+  .notebook.settings-page .page-right,
+  .notebook.admin-page .page-right,
+  .notebook.progress-page .page-right,
+  .notebook.progress-page.progress-tab-stats .page-right,
+  .notebook.progress-page.progress-tab-clients .page-right,
+  .notebook.cases-page .page-right,
+  .notebook.cases-page.cases-tab-new .page-right,
+  .notebook.cases-page.cases-tab-library .page-right {
+    display: flex !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: auto !important;
+    height: 100% !important;
+    border-radius: 0 28px 28px 0 !important;
+    padding: 20px 22px !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
+    background:
+      linear-gradient(180deg, var(--md-sys-color-surface-container-lowest) 0%, var(--notebook-page) 100%) !important;
+    box-shadow: inset 8px 0 16px color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent);
+  }
+  .notebook.progress-page .page-left,
+  .notebook.progress-page .page-right,
+  .notebook.cases-page .page-left,
+  .notebook.cases-page .page-right {
+    background: var(--panel-progress) !important;
+  }
+  .hub-section-menu-btn {
+    display: none !important;
+  }
+  .notebook.settings-page .hub-sticky-head,
+  .notebook.admin-page .hub-sticky-head,
+  .notebook.progress-page .progress-hub-head {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .hub-sticky-head-row {
+    flex-direction: row;
+  }
+  /* Right page: one classic scroll (head + body together) */
+  .notebook.settings-page .settings-page,
+  .notebook.admin-page .admin-page,
+  .notebook.progress-page .progress-stats-page {
+    display: block;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .notebook.settings-page .settings-body.page-scroll,
+  .notebook.admin-page .admin-body.page-scroll,
+  .notebook.progress-page .progress-stats.page-scroll {
+    display: contents;
+  }
+  .notebook.progress-page .progress-recent .progress-hub-head {
+    display: none !important;
+  }
+  .notebook.progress-page .progress-analyses-desktop-label {
+    display: block;
+  }
+  .notebook.progress-page .progress-analysis-head-desktop {
+    display: flex;
+  }
+  .notebook.progress-page .progress-analysis-back-mobile {
+    display: none !important;
+  }
+  .notebook.progress-page .progress-analyses-body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .notebook.progress-page .progress-hub-head .progress-analyze-btn {
+    max-width: 280px;
+  }
+  .cases-library-page {
+    display: block;
+    height: 100%;
+    overflow: auto;
+  }
+  .cases-library-page .cases-library-body.page-scroll {
+    display: contents;
+  }
+  .notebook.cases-page .cases-hub-head {
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
 }
 .admin-app-balance {
   display: flex;
@@ -5368,6 +5804,21 @@ button.fab.mini.open {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--muted, #7a6a72);
+}
+.admin-field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.admin-field-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+.settings-subhead {
+  margin: 1.4rem 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 650;
 }
 .admin-stats {
   display: grid;
@@ -5460,6 +5911,10 @@ button.fab.mini.open {
     --model-picker-bg,
     color-mix(in srgb, var(--notebook-page) 90%, var(--md-sys-color-surface-container-lowest))
   );
+}
+.model-picker.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
 }
 .model-picker-item {
   display: block;

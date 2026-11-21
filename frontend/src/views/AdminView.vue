@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { adminNavItems, adminSection, setAdminSection, type AdminSection } from '../adminUi'
+import { openHubMenu } from '../hubMenu'
 import { api } from '../api/client'
 import AiWorkingBlock from '../components/AiWorkingBlock.vue'
 import NiceDateTime from '../components/NiceDateTime.vue'
@@ -43,6 +44,14 @@ const modelFilter = ref('')
 const baseUrlDraft = ref('')
 const apiKeyDraft = ref('')
 const embeddingModelDraft = ref('')
+const embeddingModelFilter = ref('')
+const savingEmbedding = ref(false)
+const ttsModelDraft = ref('x-ai/grok-voice-tts-1.0') // original default: Grok Voice + mp3
+const ttsModelFilter = ref('')
+const savingTts = ref(false)
+const sttModelDraft = ref('openai/whisper-large-v3')
+const sttModelFilter = ref('')
+const savingStt = ref(false)
 const loading = ref(true)
 const usageLoading = ref(false)
 const chartMetric = ref<AdminUsageChartMetric>('cost')
@@ -93,7 +102,7 @@ const sectionTitles: Record<AdminSection, { title: string; sub: string }> = {
   },
   models: {
     title: 'Модели',
-    sub: 'Выбор модели из каталога RouterAI.'
+    sub: 'Чат, embedding, TTS и STT из каталога RouterAI.'
   },
   usage: {
     title: 'Использование',
@@ -130,9 +139,117 @@ const filteredModels = computed(() => {
   return list.slice(0, q ? 80 : 40)
 })
 
+/** RouterAI «Речь» (text→speech) for /audio/speech — not multimodal chat-audio. */
+function isSpeechTtsModel(m: AdminModelOption): boolean {
+  const id = (m.id || '').toLowerCase()
+  const name = (m.name || '').toLowerCase()
+  // Multimodal «Аудио» / pcm-only Gemini — not for our mp3 TTS path
+  if (id.includes('gpt-audio') || id.includes('lyria')) return false
+  if (id.includes('gemini') && id.includes('tts')) return false
+
+  if (m.tts === true) return true
+  const outs = (m.outputModalities || []).map(x => String(x).toLowerCase())
+  if (outs.includes('speech')) return true
+  // Fallback when API ещё без флага tts / modalities (старый бэкенд или урезанный /models)
+  return /tts|voice-tts|grok-voice|mai-voice|kokoro|orpheus|assemblyai-tts|text-to-speech|aura-2|flux-tts|eleven-|fish-audio|heygen-voice|speech-2|simba|csm-1b|seed-audio|voxtral.*tts|heygen-voice/i
+    .test(`${id} ${name}`)
+}
+
+const ttsModels = computed(() => models.value.filter(isSpeechTtsModel))
+
+function isEmbeddingModel(m: AdminModelOption): boolean {
+  if (m.embedding === true) return true
+  const outs = (m.outputModalities || []).map(x => String(x).toLowerCase())
+  if (outs.includes('embeddings') || outs.includes('embedding')) return true
+  const id = (m.id || '').toLowerCase()
+  const name = (m.name || '').toLowerCase()
+  return /embed/i.test(`${id} ${name}`)
+}
+
+const embeddingModels = computed(() => models.value.filter(isEmbeddingModel))
+
+function isSttModel(m: AdminModelOption): boolean {
+  if (m.stt === true) return true
+  const outs = (m.outputModalities || []).map(x => String(x).toLowerCase())
+  if (outs.includes('transcription')) return true
+  const id = (m.id || '').toLowerCase()
+  const name = (m.name || '').toLowerCase()
+  if (/tts|voice-tts|embed/i.test(`${id} ${name}`)) return false
+  return /whisper|transcrib|-stt|stt-|grok-stt|speech-to-text|nova-3|mai-transcribe/i
+    .test(`${id} ${name}`)
+}
+
+const sttModels = computed(() => models.value.filter(isSttModel))
+
+const filteredTtsModels = computed(() => {
+  const q = ttsModelFilter.value.trim().toLowerCase()
+  const list = !q
+    ? ttsModels.value
+    : ttsModels.value.filter(m =>
+        m.id.toLowerCase().includes(q)
+        || m.name.toLowerCase().includes(q)
+        || formatModelPrice(m).toLowerCase().includes(q)
+      )
+  return list.slice(0, q ? 80 : 40)
+})
+
+const filteredEmbeddingModels = computed(() => {
+  const q = embeddingModelFilter.value.trim().toLowerCase()
+  const list = !q
+    ? embeddingModels.value
+    : embeddingModels.value.filter(m =>
+        m.id.toLowerCase().includes(q)
+        || m.name.toLowerCase().includes(q)
+        || formatModelPrice(m).toLowerCase().includes(q)
+      )
+  return list.slice(0, q ? 80 : 40)
+})
+
+const filteredSttModels = computed(() => {
+  const q = sttModelFilter.value.trim().toLowerCase()
+  const list = !q
+    ? sttModels.value
+    : sttModels.value.filter(m =>
+        m.id.toLowerCase().includes(q)
+        || m.name.toLowerCase().includes(q)
+        || formatModelPrice(m).toLowerCase().includes(q)
+      )
+  return list.slice(0, q ? 80 : 40)
+})
+
 const selectedModel = computed(() =>
   models.value.find(m => m.id === modelDraft.value) || null
 )
+
+const selectedTtsModel = computed(() =>
+  models.value.find(m => m.id === ttsModelDraft.value)
+  || ttsModels.value.find(m => m.id === ttsModelDraft.value)
+  || null
+)
+
+const selectedEmbeddingModel = computed(() =>
+  models.value.find(m => m.id === embeddingModelDraft.value)
+  || embeddingModels.value.find(m => m.id === embeddingModelDraft.value)
+  || null
+)
+
+const selectedSttModel = computed(() =>
+  models.value.find(m => m.id === sttModelDraft.value)
+  || sttModels.value.find(m => m.id === sttModelDraft.value)
+  || null
+)
+
+function pickTtsModel(id: string) {
+  ttsModelDraft.value = id
+}
+
+function pickEmbeddingModel(id: string) {
+  embeddingModelDraft.value = id
+}
+
+function pickSttModel(id: string) {
+  sttModelDraft.value = id
+}
 
 function formatPer1m(n?: number | null): string {
   if (n == null || Number.isNaN(Number(n))) return '—'
@@ -429,9 +546,16 @@ function applyOverview(ov: AdminOverview) {
   modelDraft.value = ov.currentModel
   baseUrlDraft.value = ov.baseUrl || ''
   embeddingModelDraft.value = ov.embeddingModel || ''
+  ttsModelDraft.value = ov.ttsModel || 'x-ai/grok-voice-tts-1.0'
+  sttModelDraft.value = ov.sttModel || 'openai/whisper-large-v3'
   apiKeyDraft.value = ''
   if (meProfile.value && ov.balanceRub != null) {
-    setMeProfile({ ...meProfile.value, appBalanceRub: ov.balanceRub })
+    setMeProfile({
+      ...meProfile.value,
+      appBalanceRub: ov.balanceRub,
+      ttsAvailable: true,
+      sttAvailable: true
+    })
   }
 }
 
@@ -586,20 +710,19 @@ async function saveConnection() {
     error.value = 'Укажите Base URL'
     return
   }
-  if (!embeddingModelDraft.value.trim() && !overview.value?.embeddingModel) {
-    error.value = 'Укажите embedding-модель'
-    return
-  }
   savingConnection.value = true
   notice.value = ''
   error.value = ''
   try {
     const body: { baseUrl: string; apiKey?: string; embeddingModel?: string } = {
-      baseUrl: baseUrlDraft.value.trim(),
-      embeddingModel: embeddingModelDraft.value.trim() || undefined
+      baseUrl: baseUrlDraft.value.trim()
     }
     if (apiKeyDraft.value.trim()) {
       body.apiKey = apiKeyDraft.value.trim()
+    }
+    // Keep existing embedding unless none is configured yet.
+    if (!overview.value?.embeddingModel && embeddingModelDraft.value.trim()) {
+      body.embeddingModel = embeddingModelDraft.value.trim()
     }
     applyOverview(await api.adminSetConnection(body))
     notice.value = 'Base URL и ключ применены без перезапуска'
@@ -614,6 +737,76 @@ async function saveConnection() {
     error.value = e instanceof Error ? e.message : 'Не удалось сохранить подключение'
   } finally {
     savingConnection.value = false
+  }
+}
+
+async function saveEmbedding() {
+  if (!embeddingModelDraft.value.trim()) {
+    error.value = 'Укажите embedding-модель'
+    return
+  }
+  const baseUrl = (overview.value?.baseUrl || baseUrlDraft.value).trim()
+  if (!baseUrl) {
+    error.value = 'Сначала сохраните Base URL на вкладке «Подключение»'
+    return
+  }
+  savingEmbedding.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    applyOverview(await api.adminSetConnection({
+      baseUrl,
+      embeddingModel: embeddingModelDraft.value.trim()
+    }))
+    notice.value = 'Embedding-модель применена'
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось сохранить embedding-модель'
+  } finally {
+    savingEmbedding.value = false
+  }
+}
+
+async function saveTts() {
+  savingTts.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    applyOverview(await api.adminSetTts({
+      enabled: true,
+      model: ttsModelDraft.value.trim() || undefined
+    }))
+    notice.value = 'TTS-модель сохранена'
+    try {
+      setMeProfile(await api.me())
+    } catch {
+      /* ignore */
+    }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось сохранить TTS'
+  } finally {
+    savingTts.value = false
+  }
+}
+
+async function saveStt() {
+  savingStt.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    applyOverview(await api.adminSetStt({
+      enabled: true,
+      model: sttModelDraft.value.trim() || undefined
+    }))
+    notice.value = 'STT-модель сохранена'
+    try {
+      setMeProfile(await api.me())
+    } catch {
+      /* ignore */
+    }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось сохранить STT'
+  } finally {
+    savingStt.value = false
   }
 }
 
@@ -706,26 +899,42 @@ onMounted(loadAll)
     </div>
   </Teleport>
 
-  <div class="admin-page page-scroll">
+  <div class="admin-page">
+    <header class="page-head compact hub-sticky-head">
+      <div class="hub-sticky-head-row">
+        <button
+          type="button"
+          class="hub-section-menu-btn"
+          aria-haspopup="menu"
+          aria-label="Разделы админки"
+          title="Разделы"
+          @click="openHubMenu('admin')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+        </button>
+        <div class="hub-sticky-head-copy">
+          <div class="section-label">Админка</div>
+          <h2 class="page-title">{{ head.title }}</h2>
+          <p class="page-sub">
+            {{ head.sub }}
+            <a
+              v-if="overview?.docsUrl && (adminSection === 'balance' || adminSection === 'models')"
+              :href="overview.docsUrl"
+              target="_blank"
+              rel="noopener"
+            >API reference →</a>
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-body page-scroll">
     <div class="admin-app-balance admin-app-balance-mobile" v-if="overview || appBalanceDisplay != null">
       <span class="muted">Баланс приложения</span>
       <strong>{{ rub(appBalanceDisplay) }}</strong>
       <span v-if="usersTotalDisplay != null" class="muted tiny">
         выдано пользователям: {{ rub(usersTotalDisplay) }}
       </span>
-    </div>
-    <div class="page-head compact">
-      <div class="section-label">Админка</div>
-      <h2 class="page-title">{{ head.title }}</h2>
-      <p class="page-sub">
-        {{ head.sub }}
-        <a
-          v-if="overview?.docsUrl && (adminSection === 'balance' || adminSection === 'models')"
-          :href="overview.docsUrl"
-          target="_blank"
-          rel="noopener"
-        >API reference →</a>
-      </p>
     </div>
 
     <p v-if="loading" class="muted">Загрузка…</p>
@@ -751,17 +960,10 @@ onMounted(loadAll)
             :placeholder="overview.apiKeyConfigured ? `Сохранён: ${overview.apiKeyMasked}` : 'sk-…'"
           />
         </label>
-        <label class="admin-field">
-          <span>Embedding model</span>
-          <input
-            v-model="embeddingModelDraft"
-            class="field"
-            placeholder="`openai/text-embedding-3-small"
-          />
-        </label>
         <p class="muted settings-hint">
           Оставьте ключ пустым, чтобы не менять текущий.
-          Сейчас: {{ overview.apiKeyConfigured ? overview.apiKeyMasked : 'не задан' }}
+          Сейчас: {{ overview.apiKeyConfigured ? overview.apiKeyMasked : 'не задан' }}.
+          Embedding и TTS — на вкладке «Модели».
         </p>
         <button type="button" class="toolbar-btn" :disabled="savingConnection" @click="saveConnection">
           <span class="material-symbols-outlined">{{ savingConnection ? 'progress_activity' : 'link' }}</span>
@@ -797,6 +999,7 @@ onMounted(loadAll)
       </section>
 
       <section v-show="adminSection === 'models'" class="settings-section">
+        <h3 class="settings-subhead">Чат</h3>
         <p class="muted settings-hint">
           Текущая модель чата:
           <code>{{ overview.currentModel || 'не задана' }}</code>
@@ -854,6 +1057,219 @@ onMounted(loadAll)
           Показано {{ filteredModels.length }} из {{ models.length }}
           <template v-if="!modelFilter.trim()"> · начните вводить запрос, чтобы сузить список</template>
           · цены в ₽ за 1 млн токенов
+        </p>
+
+        <h3 class="settings-subhead">Embedding</h3>
+        <p class="muted settings-hint">
+          Векторный индекс (память клиента / knowledge). Текущая:
+          <code>{{ overview.embeddingModel || embeddingModelDraft || 'не задана' }}</code>
+          <template v-if="selectedEmbeddingModel">
+            · {{ formatModelPrice(selectedEmbeddingModel) }}
+          </template>
+        </p>
+        <label class="admin-field">
+          <span>Поиск embedding-модели</span>
+          <input
+            v-model="embeddingModelFilter"
+            class="field"
+            type="search"
+            autocomplete="off"
+            placeholder="Название, id или цена…"
+          />
+        </label>
+        <div class="model-picker" role="listbox" aria-label="Каталог embedding-моделей">
+          <div
+            v-for="m in filteredEmbeddingModels"
+            :key="m.id"
+            class="model-picker-item"
+            role="option"
+            tabindex="0"
+            :aria-selected="embeddingModelDraft === m.id"
+            :class="{ selected: embeddingModelDraft === m.id }"
+            @click="pickEmbeddingModel(m.id)"
+            @keydown.enter.prevent="pickEmbeddingModel(m.id)"
+            @keydown.space.prevent="pickEmbeddingModel(m.id)"
+          >
+            <div class="model-picker-title">{{ m.name }}</div>
+            <div class="model-picker-id">{{ m.id }}</div>
+            <div class="model-picker-prices">
+              <span class="model-price-chip">вход {{ formatPer1m(m.promptPer1mRub) }}/1M</span>
+              <span class="model-price-chip">выход {{ formatPer1m(m.completionPer1mRub) }}/1M</span>
+            </div>
+          </div>
+          <p v-if="!models.length" class="muted settings-hint model-picker-empty">
+            Каталог пуст — проверьте API key и Base URL на вкладке «Подключение».
+          </p>
+          <p v-else-if="!embeddingModels.length" class="muted settings-hint model-picker-empty">
+            В каталоге нет embedding-моделей. Можно ввести id вручную ниже.
+          </p>
+          <p v-else-if="!filteredEmbeddingModels.length" class="muted settings-hint model-picker-empty">
+            Ничего не найдено по «{{ embeddingModelFilter }}».
+          </p>
+        </div>
+        <div class="admin-model-row">
+          <input
+            v-model="embeddingModelDraft"
+            class="field"
+            placeholder="openai/text-embedding-3-small"
+          />
+          <button
+            type="button"
+            class="toolbar-btn"
+            :disabled="savingEmbedding || !embeddingModelDraft.trim()"
+            @click="saveEmbedding"
+          >
+            <span class="material-symbols-outlined">{{ savingEmbedding ? 'progress_activity' : 'save' }}</span>
+            <span>Применить</span>
+          </button>
+        </div>
+        <p v-if="embeddingModels.length" class="muted settings-hint">
+          Показано {{ filteredEmbeddingModels.length }} из {{ embeddingModels.length }} embedding
+        </p>
+
+        <h3 class="settings-subhead">Озвучка клиента (TTS)</h3>
+        <p class="muted settings-hint">
+          Текущая TTS-модель:
+          <code>{{ overview.ttsModel || ttsModelDraft || 'не задана' }}</code>
+          <template v-if="selectedTtsModel">
+            · {{ formatModelPrice(selectedTtsModel) }}
+          </template>
+        </p>
+        <label class="admin-field">
+          <span>Поиск TTS-модели</span>
+          <input
+            v-model="ttsModelFilter"
+            class="field"
+            type="search"
+            autocomplete="off"
+            placeholder="Название, id или цена…"
+          />
+        </label>
+        <div
+          class="model-picker"
+          role="listbox"
+          aria-label="Каталог TTS-моделей"
+        >
+          <div
+            v-for="m in filteredTtsModels"
+            :key="m.id"
+            class="model-picker-item"
+            role="option"
+            tabindex="0"
+            :aria-selected="ttsModelDraft === m.id"
+            :class="{ selected: ttsModelDraft === m.id }"
+            @click="pickTtsModel(m.id)"
+            @keydown.enter.prevent="pickTtsModel(m.id)"
+            @keydown.space.prevent="pickTtsModel(m.id)"
+          >
+            <div class="model-picker-title">{{ m.name }}</div>
+            <div class="model-picker-id">{{ m.id }}</div>
+            <div class="model-picker-prices">
+              <span class="model-price-chip">вход {{ formatPer1m(m.promptPer1mRub) }}/1M</span>
+              <span class="model-price-chip">выход {{ formatPer1m(m.completionPer1mRub) }}/1M</span>
+            </div>
+          </div>
+          <p v-if="!models.length" class="muted settings-hint model-picker-empty">
+            Каталог пуст — проверьте API key и Base URL на вкладке «Подключение».
+          </p>
+          <p v-else-if="!ttsModels.length" class="muted settings-hint model-picker-empty">
+            В каталоге нет моделей с выходом «Речь» (text→speech). Можно ввести id вручную ниже.
+          </p>
+          <p v-else-if="!filteredTtsModels.length" class="muted settings-hint model-picker-empty">
+            Ничего не найдено по «{{ ttsModelFilter }}».
+          </p>
+        </div>
+        <div class="admin-model-row">
+          <input
+            v-model="ttsModelDraft"
+            class="field"
+            placeholder="provider/tts-model-id"
+          />
+          <button
+            type="button"
+            class="toolbar-btn secondary"
+            :disabled="savingTts"
+            @click="saveTts"
+          >
+            <span class="material-symbols-outlined">{{ savingTts ? 'progress_activity' : 'record_voice_over' }}</span>
+            <span>Сохранить TTS</span>
+          </button>
+        </div>
+        <p v-if="ttsModels.length" class="muted settings-hint">
+          Показано {{ filteredTtsModels.length }} из {{ ttsModels.length }} TTS
+          · цены в ₽ за 1 млн символов/токенов (как отдаёт RouterAI)
+        </p>
+
+        <h3 class="settings-subhead">Голосовой ввод (STT)</h3>
+        <p class="muted settings-hint">
+          Текущая STT-модель:
+          <code>{{ overview.sttModel || sttModelDraft || 'не задана' }}</code>
+          <template v-if="selectedSttModel">
+            · {{ formatModelPrice(selectedSttModel) }}
+          </template>
+        </p>
+        <label class="admin-field">
+          <span>Поиск STT-модели</span>
+          <input
+            v-model="sttModelFilter"
+            class="field"
+            type="search"
+            autocomplete="off"
+            placeholder="Название, id или цена…"
+          />
+        </label>
+        <div
+          class="model-picker"
+          role="listbox"
+          aria-label="Каталог STT-моделей"
+        >
+          <div
+            v-for="m in filteredSttModels"
+            :key="m.id"
+            class="model-picker-item"
+            role="option"
+            tabindex="0"
+            :aria-selected="sttModelDraft === m.id"
+            :class="{ selected: sttModelDraft === m.id }"
+            @click="pickSttModel(m.id)"
+            @keydown.enter.prevent="pickSttModel(m.id)"
+            @keydown.space.prevent="pickSttModel(m.id)"
+          >
+            <div class="model-picker-title">{{ m.name }}</div>
+            <div class="model-picker-id">{{ m.id }}</div>
+            <div class="model-picker-prices">
+              <span class="model-price-chip">вход {{ formatPer1m(m.promptPer1mRub) }}/1M</span>
+              <span class="model-price-chip">выход {{ formatPer1m(m.completionPer1mRub) }}/1M</span>
+            </div>
+          </div>
+          <p v-if="!models.length" class="muted settings-hint model-picker-empty">
+            Каталог пуст — проверьте API key и Base URL на вкладке «Подключение».
+          </p>
+          <p v-else-if="!sttModels.length" class="muted settings-hint model-picker-empty">
+            В каталоге нет моделей транскрибации. Можно ввести id вручную ниже.
+          </p>
+          <p v-else-if="!filteredSttModels.length" class="muted settings-hint model-picker-empty">
+            Ничего не найдено по «{{ sttModelFilter }}».
+          </p>
+        </div>
+        <div class="admin-model-row">
+          <input
+            v-model="sttModelDraft"
+            class="field"
+            placeholder="openai/whisper-large-v3"
+          />
+          <button
+            type="button"
+            class="toolbar-btn secondary"
+            :disabled="savingStt"
+            @click="saveStt"
+          >
+            <span class="material-symbols-outlined">{{ savingStt ? 'progress_activity' : 'mic' }}</span>
+            <span>Сохранить STT</span>
+          </button>
+        </div>
+        <p v-if="sttModels.length" class="muted settings-hint">
+          Показано {{ filteredSttModels.length }} из {{ sttModels.length }} STT
         </p>
       </section>
 
@@ -1460,5 +1876,6 @@ onMounted(loadAll)
         </div>
       </div>
     </Teleport>
+    </div>
   </div>
 </template>

@@ -59,9 +59,39 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>
 }
 
+async function requestBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(init.headers || {})
+  headers.set('Authorization', `Bearer ${getToken()}`)
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+  const res = await fetch(`${API_URL}${path}`, { ...init, headers })
+  if (!res.ok) {
+    const text = await res.text()
+    let message = text || res.statusText
+    try {
+      const parsed = JSON.parse(text) as { detail?: string; message?: string; title?: string }
+      if (typeof parsed.detail === 'string' && parsed.detail) message = parsed.detail
+      else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+    } catch {
+      /* keep raw text */
+    }
+    if (res.status === 402) {
+      throw new ApiError(message || INSUFFICIENT_FUNDS_MSG, 402)
+    }
+    throw new ApiError(message, res.status)
+  }
+  return res.blob()
+}
+
 export const api = {
   me: () => request<Me>('/api/me'),
   acceptDisclaimer: () => request<Me>('/api/me/accept-disclaimer', { method: 'POST' }),
+  updateVoiceSettings: (body: { ttsEnabled?: boolean; sttEnabled?: boolean }) =>
+    request<Me>('/api/me/voice-settings', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
   myBalanceHistory: () => request<BalanceTopUp[]>('/api/me/balance/history'),
   myUsage: (query: AdminUsageQuery | number = 30) => {
     const params = new URLSearchParams()
@@ -98,6 +128,39 @@ export const api = {
   messages: (clientId: string) => request<Message[]>(`/api/clients/${clientId}/messages`),
   sessionMessages: (sessionId: string) =>
     request<Message[]>(`/api/sessions/${sessionId}/messages`),
+  speakMessage: (messageId: string) =>
+    requestBlob(`/api/messages/${messageId}/tts`, { method: 'POST' }),
+  transcribe: async (blob: Blob, opts?: { clientId?: string; sessionId?: string; filename?: string }) => {
+    const form = new FormData()
+    const name = opts?.filename || (blob.type.includes('ogg') ? 'voice.ogg' : 'voice.webm')
+    form.append('file', blob, name)
+    const params = new URLSearchParams()
+    if (opts?.clientId) params.set('clientId', opts.clientId)
+    if (opts?.sessionId) params.set('sessionId', opts.sessionId)
+    const qs = params.toString()
+    const headers = new Headers()
+    headers.set('Authorization', `Bearer ${getToken()}`)
+    // Do not set Content-Type — browser adds multipart boundary.
+    const res = await fetch(`${API_URL}/api/stt/transcribe${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers,
+      body: form
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      let message = text || res.statusText
+      try {
+        const parsed = JSON.parse(text) as { detail?: string; message?: string }
+        if (typeof parsed.detail === 'string' && parsed.detail) message = parsed.detail
+        else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+      } catch {
+        /* keep */
+      }
+      if (res.status === 402) throw new ApiError(message || INSUFFICIENT_FUNDS_MSG, 402)
+      throw new ApiError(message, res.status)
+    }
+    return res.json() as Promise<{ text: string }>
+  },
   sendMessage: (sessionId: string, content: string) =>
     request<Message>(`/api/sessions/${sessionId}/messages`, {
       method: 'POST',
@@ -159,6 +222,16 @@ export const api = {
     }),
   adminSetConnection: (body: { baseUrl: string; apiKey?: string; embeddingModel?: string }) =>
     request<AdminOverview>('/api/admin/connection', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
+  adminSetTts: (body: { enabled: boolean; model?: string }) =>
+    request<AdminOverview>('/api/admin/tts', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    }),
+  adminSetStt: (body: { enabled: boolean; model?: string }) =>
+    request<AdminOverview>('/api/admin/stt', {
       method: 'PUT',
       body: JSON.stringify(body)
     }),

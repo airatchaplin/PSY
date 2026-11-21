@@ -25,13 +25,22 @@ import {
   stashPendingShareToken,
   takePendingShareToken
 } from './casesUi'
-import { adminNavItems, adminSection, setAdminSection } from './adminUi'
-import { settingsNavItems, settingsSection, setSettingsSection } from './settingsUi'
+import { adminSection } from './adminUi'
+import { settingsSection } from './settingsUi'
 import { progressMobileTab, setProgressMobileTab } from './progressUi'
 import { tagCode, tagLabel } from './labels'
 import {
+  closeHubMenu,
+  hubMenuActiveId,
+  hubMenuAriaLabel,
+  hubMenuItems,
+  hubMenuOpen,
+  openHubMenu,
+  pickHubMenuItem,
+  setChatPageSelect
+} from './hubMenu'
+import {
   bindMobilePageSwipe,
-  CHAT_MOBILE_PAGES,
   chatPageFromPanel,
   setChatMobilePage,
   shiftAdminMobilePage,
@@ -491,55 +500,6 @@ function selectChatMobilePage(id: string) {
   router.push(`/clients/${target}`)
 }
 
-const mobilePagerDots = computed(() => {
-  if (!mobileUi.value) return null
-  if (isChatLayout.value) {
-    return {
-      pages: CHAT_MOBILE_PAGES.map(id => ({
-        id,
-        label: id === 'clients' ? 'Клиенты' : id === 'notes' ? 'Заметки' : id === 'sessions' ? 'Сеансы' : 'Чат'
-      })),
-      active: isClientsPicker.value ? 'clients' : chatMobilePage.value,
-      select: selectChatMobilePage
-    }
-  }
-  if (isCasesPage.value) {
-    return {
-      pages: [
-        { id: 'new', label: 'Новый' },
-        { id: 'library', label: 'Библиотека' }
-      ],
-      active: casesMobileTab.value,
-      select: (id: string) => setCasesMobileTab(id as 'new' | 'library')
-    }
-  }
-  if (isProgressPage.value) {
-    return {
-      pages: [
-        { id: 'stats', label: 'Статистика' },
-        { id: 'clients', label: 'Анализы' }
-      ],
-      active: progressMobileTab.value,
-      select: (id: string) => setProgressMobileTab(id as 'clients' | 'stats')
-    }
-  }
-  if (isAdminPage.value) {
-    return {
-      pages: adminNavItems.map(item => ({ id: item.id, label: item.label })),
-      active: adminSection.value,
-      select: (id: string) => setAdminSection(id as typeof adminSection.value)
-    }
-  }
-  if (isSettingsPage.value) {
-    return {
-      pages: settingsNavItems.map(item => ({ id: item.id, label: item.label })),
-      active: settingsSection.value,
-      select: (id: string) => setSettingsSection(id as typeof settingsSection.value)
-    }
-  }
-  return null
-})
-
 function flashSwipeDir(dir: MobileSwipeDir) {
   mobileSwipeDir.value = dir
   window.setTimeout(() => {
@@ -585,6 +545,7 @@ function bindNotebookSwipe() {
 }
 
 onMounted(async () => {
+  setChatPageSelect(selectChatMobilePage)
   // Hard refresh: align notebook chrome to the real URL before children Teleport.
   layoutMode.value = layoutModeFromRoute()
   routeAnimating.value = false
@@ -777,27 +738,33 @@ watch(sessionLeftPanel, (panel, prev) => {
           'mobile-tab-bar-hidden': hideMobileBottomBar
         }"
       >
-        <div
-          v-if="mobilePagerDots"
-          class="mobile-page-dots"
-          role="tablist"
-          aria-label="Страницы"
-        >
-          <div class="mobile-page-dots-pill">
+        <Teleport to="body">
+          <div
+            v-if="hubMenuOpen"
+            class="hub-section-menu-backdrop"
+            aria-hidden="true"
+            @click="closeHubMenu"
+          />
+          <div
+            v-if="hubMenuOpen"
+            class="hub-section-menu"
+            role="menu"
+            :aria-label="hubMenuAriaLabel"
+          >
             <button
-              v-for="p in mobilePagerDots.pages"
-              :key="p.id"
+              v-for="item in hubMenuItems"
+              :key="item.id"
               type="button"
-              role="tab"
-              class="mobile-page-dot"
-              :class="{ active: mobilePagerDots.active === p.id }"
-              :aria-selected="mobilePagerDots.active === p.id"
-              :aria-label="p.label"
-              :title="p.label"
-              @click="mobilePagerDots.select(p.id)"
-            />
+              role="menuitem"
+              class="list-item hub-section-menu-item"
+              :class="{ active: hubMenuActiveId === item.id }"
+              @click="pickHubMenuItem(item.id)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{ item.icon }}</span>
+              <strong>{{ item.label }}</strong>
+            </button>
           </div>
-        </div>
+        </Teleport>
 
         <div
           v-if="isCasesPage"
@@ -918,6 +885,16 @@ watch(sessionLeftPanel, (panel, prev) => {
             :inert="isHomePage ? undefined : true"
           >
             <div class="clients-search-row">
+              <button
+                type="button"
+                class="hub-section-menu-btn"
+                aria-haspopup="menu"
+                aria-label="Разделы чата"
+                title="Разделы"
+                @click="openHubMenu('chat')"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+              </button>
               <div class="search-bar">
                 <span class="icon">search</span>
                 <input v-model="query" placeholder="Поиск по клиентам" />
@@ -1055,13 +1032,28 @@ watch(sessionLeftPanel, (panel, prev) => {
             :aria-hidden="!isCasesPage"
             :inert="isCasesPage ? undefined : true"
           >
-            <div class="pane-head">
-              <div class="section-label left-scroll-label">Новый кейс</div>
-              <p class="pane-sub">
-                Опишите сценарий сами или попросите ИИ собрать заготовку по короткому промпту —
-                потом его можно править и запускать в приём.
-              </p>
-            </div>
+            <header class="page-head compact hub-sticky-head cases-hub-head">
+              <div class="hub-sticky-head-row">
+                <button
+                  type="button"
+                  class="hub-section-menu-btn"
+                  aria-haspopup="menu"
+                  aria-label="Разделы кейсов"
+                  title="Разделы"
+                  @click="openHubMenu('cases')"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                </button>
+                <div class="hub-sticky-head-copy">
+                  <div class="section-label">Кейсы</div>
+                  <h2 class="page-title">Новый кейс</h2>
+                  <p class="page-sub">
+                    Опишите сценарий сами или попросите ИИ собрать заготовку по короткому промпту —
+                    потом его можно править и запускать в приём.
+                  </p>
+                </div>
+              </div>
+            </header>
 
             <div class="button-group mode-switch">
               <button type="button" :class="caseMode === 'manual' ? '' : 'secondary'" @click="caseMode = 'manual'">Вручную</button>
@@ -1182,6 +1174,16 @@ watch(sessionLeftPanel, (panel, prev) => {
               <Transition :name="panelTransitionEnabled ? 'notes-panel' : undefined">
                 <div v-if="clientsPanelOpen" class="session-left-panel clients-left-panel">
                   <div class="clients-search-row">
+                    <button
+                      type="button"
+                      class="hub-section-menu-btn"
+                      aria-haspopup="menu"
+                      aria-label="Разделы чата"
+                      title="Разделы"
+                      @click="openHubMenu('chat')"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+                    </button>
                     <div class="search-bar">
                       <span class="icon">search</span>
                       <input v-model="query" placeholder="Поиск по клиентам" />

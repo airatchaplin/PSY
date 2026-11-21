@@ -22,6 +22,13 @@ export { shiftAdminMobilePage, shiftSettingsMobilePage }
 export const CHAT_MOBILE_PAGES = ['clients', 'chat', 'notes', 'sessions'] as const
 export type ChatMobilePage = (typeof CHAT_MOBILE_PAGES)[number]
 
+export const chatNavItems: { id: ChatMobilePage; label: string; icon: string }[] = [
+  { id: 'clients', label: 'Клиенты', icon: 'group' },
+  { id: 'chat', label: 'Чат', icon: 'chat' },
+  { id: 'notes', label: 'Заметки', icon: 'sticky_note_2' },
+  { id: 'sessions', label: 'Сеансы', icon: 'history' }
+]
+
 export type MobileSwipeDir = 'left' | 'right' | null
 
 const SWIPE_THRESHOLD_PX = 56

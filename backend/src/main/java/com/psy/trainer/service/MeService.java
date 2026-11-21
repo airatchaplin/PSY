@@ -53,6 +53,18 @@ public class MeService {
         return toDto(repository.save(p));
     }
 
+    @Transactional
+    public Dtos.MeResponse updateVoiceSettings(Dtos.UpdateVoiceSettingsRequest request) {
+        TherapistProfile p = currentTherapistService.requireCurrent();
+        if (request.ttsEnabled() != null) {
+            p.setTtsEnabled(request.ttsEnabled());
+        }
+        if (request.sttEnabled() != null) {
+            p.setSttEnabled(request.sttEnabled());
+        }
+        return toDto(repository.save(p));
+    }
+
     @Transactional(readOnly = true)
     public List<Dtos.BalanceTopUpResponse> balanceHistory() {
         return userBalanceService.currentUserTopUps();
@@ -90,7 +102,11 @@ public class MeService {
                 balance,
                 balance.compareTo(BigDecimal.ZERO) > 0,
                 appBalance,
-                usersTotal
+                usersTotal,
+                runtimeConfigService.isTtsEnabled(),
+                p.isTtsEnabled(),
+                runtimeConfigService.isSttEnabled(),
+                p.isSttEnabled()
         );
     }
 

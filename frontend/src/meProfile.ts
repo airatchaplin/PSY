@@ -12,6 +12,11 @@ export const llmAllowed = computed(() => {
   return Number.isFinite(balance) ? balance > 0 : true
 })
 
+/** User preference from profile (admin no longer gates availability). */
+export const ttsEnabled = computed(() => !!meProfile.value?.ttsEnabled)
+
+export const sttEnabled = computed(() => !!meProfile.value?.sttEnabled)
+
 export const balanceRub = computed(() => {
   const n = Number(meProfile.value?.balanceRub ?? 0)
   return Number.isFinite(n) ? n : 0

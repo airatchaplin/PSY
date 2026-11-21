@@ -47,6 +47,16 @@ public class AdminController {
         return adminService.updateConnection(request);
     }
 
+    @PutMapping("/tts")
+    public Dtos.AdminOverviewResponse updateTts(@RequestBody Dtos.UpdateTtsSettingsRequest request) {
+        return adminService.updateTts(request);
+    }
+
+    @PutMapping("/stt")
+    public Dtos.AdminOverviewResponse updateStt(@RequestBody Dtos.UpdateSttSettingsRequest request) {
+        return adminService.updateStt(request);
+    }
+
     @GetMapping("/prompts")
     public List<Dtos.PromptSummary> prompts() {
         return adminService.prompts();

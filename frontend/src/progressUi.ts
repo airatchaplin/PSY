@@ -23,3 +23,8 @@ watch(progressMobileTab, tab => {
 export function setProgressMobileTab(tab: ProgressMobileTab) {
   progressMobileTab.value = tab
 }
+
+export const progressNavItems: { id: ProgressMobileTab; label: string; icon: string }[] = [
+  { id: 'stats', label: 'Статистика', icon: 'monitoring' },
+  { id: 'clients', label: 'Анализы', icon: 'analytics' }
+]

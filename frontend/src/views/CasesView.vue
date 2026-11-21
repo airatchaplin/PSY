@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import AiWorkingBlock from '../components/AiWorkingBlock.vue'
 import { casesShareNotice, casesVersion } from '../casesUi'
+import { openHubMenu } from '../hubMenu'
 import { closeLeftPanelOnMobile } from '../sessionUi'
 import { difficultyLabel, tagCode, tagLabel } from '../labels'
 import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
@@ -113,16 +114,32 @@ function sourceLabel(c: CaseItem) {
 </script>
 
 <template>
-  <div class="page-scroll">
-    <div class="page-head">
-      <h2 class="section-label left-scroll-label">Библиотека кейсов</h2>
-      <p class="page-sub cases-lib-hint-desktop">
-        Здесь учебные сценарии для практики: общие — доступны всем, ваши — только вам.
-        Поделитесь своим кейсом ссылкой с коллегой. Перед стартом приёма можно уточнить
-        пол и возраст клиента или оставить «Неважно».
-      </p>
-      <p class="page-sub cases-lib-hint-mobile">Выберите кейс, чтобы начать приём.</p>
-    </div>
+  <div class="cases-library-page">
+    <header class="page-head compact hub-sticky-head cases-hub-head">
+      <div class="hub-sticky-head-row">
+        <button
+          type="button"
+          class="hub-section-menu-btn"
+          aria-haspopup="menu"
+          aria-label="Разделы кейсов"
+          title="Разделы"
+          @click="openHubMenu('cases')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+        </button>
+        <div class="hub-sticky-head-copy">
+          <div class="section-label">Кейсы</div>
+          <h2 class="page-title">Библиотека</h2>
+          <p class="page-sub cases-lib-hint-desktop">
+            Здесь учебные сценарии для практики: общие — доступны всем, ваши — только вам.
+            Поделитесь своим кейсом ссылкой с коллегой. Перед стартом приёма можно уточнить
+            пол и возраст клиента или оставить «Неважно».
+          </p>
+          <p class="page-sub cases-lib-hint-mobile">Выберите кейс, чтобы начать приём.</p>
+        </div>
+      </div>
+    </header>
+    <div class="page-scroll cases-library-body">
     <p v-if="error" class="error-text">{{ error }}</p>
     <p v-if="notice" class="ok-text">{{ notice }}</p>
 
@@ -168,6 +185,7 @@ function sourceLabel(c: CaseItem) {
       </div>
     </div>
     <p v-if="!cases.length" class="empty-hint">Пока нет кейсов.</p>
+    </div>
 
     <Teleport to="body">
       <div

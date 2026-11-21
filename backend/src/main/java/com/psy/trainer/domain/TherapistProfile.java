@@ -26,6 +26,14 @@ public class TherapistProfile {
     @Column(name = "disclaimer_accepted_at")
     private Instant disclaimerAcceptedAt;
 
+    /** Personal preference: cloud TTS of client messages (requires admin TTS available). */
+    @Column(name = "tts_enabled", nullable = false)
+    private boolean ttsEnabled = false;
+
+    /** Personal preference: cloud STT voice input (requires admin STT available). */
+    @Column(name = "stt_enabled", nullable = false)
+    private boolean sttEnabled = false;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -69,6 +77,22 @@ public class TherapistProfile {
 
     public void acceptDisclaimer() {
         this.disclaimerAcceptedAt = Instant.now();
+    }
+
+    public boolean isTtsEnabled() {
+        return ttsEnabled;
+    }
+
+    public void setTtsEnabled(boolean ttsEnabled) {
+        this.ttsEnabled = ttsEnabled;
+    }
+
+    public boolean isSttEnabled() {
+        return sttEnabled;
+    }
+
+    public void setSttEnabled(boolean sttEnabled) {
+        this.sttEnabled = sttEnabled;
     }
 
     public Instant getCreatedAt() {

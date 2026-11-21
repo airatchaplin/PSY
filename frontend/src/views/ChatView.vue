@@ -6,7 +6,8 @@ import AnalysisReport from '../components/AnalysisReport.vue'
 import { difficultyLabel, genderLabel, tagCode, tagLabel } from '../labels'
 import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
 import { newId } from '../id'
-import { llmAllowed, setMeProfile } from '../meProfile'
+import { openHubMenu } from '../hubMenu'
+import { llmAllowed, setMeProfile, sttEnabled, ttsEnabled } from '../meProfile'
 import {
   analysisPanelOpen,
   closeLeftPanelOnMobile,
@@ -110,6 +111,211 @@ function stopAnalyzingStatusCycle() {
 const awaitingClient = ref(false)
 /** Waiting for supervisor (LLM) reply — same typing bubble. */
 const awaitingSupervisor = ref(false)
+/** Cloud TTS playback for CLIENT bubbles. */
+const speakingMessageId = ref<string | null>(null)
+const ttsLoadingId = ref<string | null>(null)
+let ttsAudio: HTMLAudioElement | null = null
+let ttsObjectUrl: string | null = null
+
+function stopTtsPlayback() {
+  if (ttsAudio) {
+    ttsAudio.pause()
+    ttsAudio.onended = null
+    ttsAudio.onerror = null
+    ttsAudio = null
+  }
+  if (ttsObjectUrl) {
+    URL.revokeObjectURL(ttsObjectUrl)
+    ttsObjectUrl = null
+  }
+  speakingMessageId.value = null
+}
+
+async function toggleSpeakClient(m: Message) {
+  if (!ttsEnabled.value || m.role !== 'CLIENT' || !m.content?.trim() || !llmAllowed.value) return
+  if (speakingMessageId.value === m.id || ttsLoadingId.value === m.id) {
+    stopTtsPlayback()
+    ttsLoadingId.value = null
+    return
+  }
+  stopTtsPlayback()
+  ttsLoadingId.value = m.id
+  error.value = ''
+  try {
+    const blob = await api.speakMessage(m.id)
+    await refreshBalance()
+    const url = URL.createObjectURL(blob)
+    ttsObjectUrl = url
+    const audio = new Audio(url)
+    ttsAudio = audio
+    speakingMessageId.value = m.id
+    audio.onended = () => {
+      if (speakingMessageId.value === m.id) stopTtsPlayback()
+    }
+    audio.onerror = () => {
+      stopTtsPlayback()
+      error.value = 'Не удалось воспроизвести озвучку'
+    }
+    await audio.play()
+  } catch (e) {
+    stopTtsPlayback()
+    error.value = apiErrorMessage(e, 'Не удалось озвучить сообщение')
+  } finally {
+    if (ttsLoadingId.value === m.id) ttsLoadingId.value = null
+  }
+}
+
+/** Therapist STT (MediaRecorder → /api/stt/transcribe → draft). */
+const sttRecording = ref(false)
+const sttBusy = ref(false)
+let sttMediaRecorder: MediaRecorder | null = null
+let sttChunks: BlobPart[] = []
+let sttStream: MediaStream | null = null
+
+function stopSttTracks() {
+  if (sttStream) {
+    for (const t of sttStream.getTracks()) t.stop()
+    sttStream = null
+  }
+}
+
+type SttTarget = 'chat' | 'supervisor'
+const sttTarget = ref<SttTarget>('chat')
+
+const composerHasText = computed(() => !!draft.value.trim())
+const supervisorHasText = computed(() => !!supervisorDraft.value.trim())
+
+/** Telegram-style: mic when empty (+ STT on), send when there is text. */
+const composerActionIsMic = computed(() =>
+  sttEnabled.value && (
+    !composerHasText.value
+    || (sttRecording.value && sttTarget.value === 'chat')
+    || (sttBusy.value && sttTarget.value === 'chat')
+  )
+)
+
+const supervisorActionIsMic = computed(() =>
+  sttEnabled.value && (
+    !supervisorHasText.value
+    || (sttRecording.value && sttTarget.value === 'supervisor')
+    || (sttBusy.value && sttTarget.value === 'supervisor')
+  )
+)
+
+const chatSttActive = computed(() =>
+  (sttRecording.value || sttBusy.value) && sttTarget.value === 'chat'
+)
+const supervisorSttActive = computed(() =>
+  (sttRecording.value || sttBusy.value) && sttTarget.value === 'supervisor'
+)
+
+function onComposerAction(e: Event) {
+  if (composerActionIsMic.value) {
+    e.preventDefault()
+    void toggleSttRecord('chat')
+    return
+  }
+  e.preventDefault()
+  void send()
+}
+
+function onSupervisorComposerAction(e: Event) {
+  if (supervisorActionIsMic.value) {
+    e.preventDefault()
+    void toggleSttRecord('supervisor')
+    return
+  }
+  e.preventDefault()
+  void askSupervisor()
+}
+
+async function toggleSttRecord(target: SttTarget = 'chat') {
+  if (!sttEnabled.value || !llmAllowed.value || busy.value) return
+  if (target === 'chat' && therapyDone.value) return
+  if (sttBusy.value) return
+  if (sttRecording.value) {
+    // Stop whichever recording is active
+    sttMediaRecorder?.stop()
+    return
+  }
+  const hasText = target === 'chat' ? composerHasText.value : supervisorHasText.value
+  if (hasText) return
+  sttTarget.value = target
+  error.value = ''
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      error.value = 'Микрофон недоступен в этом браузере'
+      return
+    }
+    sttStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : ''
+    sttChunks = []
+    sttMediaRecorder = mime
+      ? new MediaRecorder(sttStream, { mimeType: mime })
+      : new MediaRecorder(sttStream)
+    sttMediaRecorder.ondataavailable = ev => {
+      if (ev.data && ev.data.size > 0) sttChunks.push(ev.data)
+    }
+    sttMediaRecorder.onerror = () => {
+      sttRecording.value = false
+      stopSttTracks()
+      error.value = 'Ошибка записи микрофона'
+    }
+    const recordTarget = target
+    sttMediaRecorder.onstop = async () => {
+      sttRecording.value = false
+      stopSttTracks()
+      const type = sttMediaRecorder?.mimeType || 'audio/webm'
+      sttMediaRecorder = null
+      const blob = new Blob(sttChunks, { type })
+      sttChunks = []
+      if (!blob.size) {
+        error.value = 'Пустая запись'
+        return
+      }
+      sttBusy.value = true
+      try {
+        const res = await api.transcribe(blob, {
+          clientId: props.id,
+          sessionId: activeSessionId.value || undefined,
+          filename: type.includes('ogg') ? 'voice.ogg' : 'voice.webm'
+        })
+        await refreshBalance()
+        const text = (res.text || '').trim()
+        if (!text) {
+          error.value = 'Не удалось распознать речь'
+          return
+        }
+        // Put transcript in the field, then send immediately (Telegram-style voice).
+        if (recordTarget === 'supervisor') {
+          supervisorDraft.value = text
+          sttBusy.value = false
+          await askSupervisor()
+        } else {
+          draft.value = text
+          sttBusy.value = false
+          await send()
+        }
+      } catch (e) {
+        error.value = apiErrorMessage(e, 'Не удалось распознать речь')
+      } finally {
+        sttBusy.value = false
+      }
+    }
+    sttMediaRecorder.start()
+    sttRecording.value = true
+  } catch (e) {
+    stopSttTracks()
+    sttRecording.value = false
+    error.value = e instanceof Error && /NotAllowed|Permission/i.test(e.message)
+      ? 'Нет доступа к микрофону'
+      : apiErrorMessage(e, 'Не удалось начать запись')
+  }
+}
 const analysis = ref<Analysis | null>(null)
 const error = ref('')
 const elapsed = ref(0)
@@ -812,6 +1018,14 @@ watch(notesPanelOpen, async open => {
   resizeComposer(noteInputEl.value)
 })
 onUnmounted(() => {
+  stopTtsPlayback()
+  ttsLoadingId.value = null
+  if (sttMediaRecorder && sttRecording.value) {
+    try { sttMediaRecorder.stop() } catch { /* ignore */ }
+  }
+  stopSttTracks()
+  sttRecording.value = false
+  sttBusy.value = false
   void syncTimerToBackend()
   stopTimerInterval()
   stopAnalyzingStatusCycle()
@@ -1235,6 +1449,16 @@ function toggleClientInfo() {
             <span class="material-symbols-outlined" aria-hidden="true">support_agent</span>
             <span class="label-full">Супервизор</span>
           </button>
+          <button
+            type="button"
+            class="hub-section-menu-btn"
+            aria-haspopup="menu"
+            aria-label="Разделы чата"
+            title="Разделы"
+            @click="openHubMenu('chat')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1278,7 +1502,32 @@ function toggleClientInfo() {
           <p v-if="chatHydrating" class="empty-hint">Открываем сеанс…</p>
           <template v-else>
             <div v-for="m in displayMessages" :key="m.id" class="bubble" :class="m.role">
-              <strong v-if="m.role !== 'SYSTEM'">{{ m.role === 'CLIENT' ? client.name : 'Вы' }}: </strong>{{ m.content }}
+              <div class="bubble-main">
+                <strong v-if="m.role !== 'SYSTEM'">{{ m.role === 'CLIENT' ? client.name : 'Вы' }}: </strong>{{ m.content }}
+              </div>
+              <button
+                v-if="ttsEnabled && m.role === 'CLIENT' && m.content?.trim()"
+                type="button"
+                class="bubble-tts"
+                :class="{
+                  active: speakingMessageId === m.id,
+                  loading: ttsLoadingId === m.id
+                }"
+                :disabled="!!ttsLoadingId && ttsLoadingId !== m.id"
+                :title="speakingMessageId === m.id || ttsLoadingId === m.id ? 'Остановить' : 'Озвучить'"
+                :aria-label="speakingMessageId === m.id || ttsLoadingId === m.id ? 'Остановить озвучку' : 'Озвучить сообщение клиента'"
+                @click.stop="toggleSpeakClient(m)"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">
+                  {{
+                    ttsLoadingId === m.id
+                      ? 'progress_activity'
+                      : speakingMessageId === m.id
+                        ? 'stop_circle'
+                        : 'volume_up'
+                  }}
+                </span>
+              </button>
             </div>
             <div
               v-if="awaitingClient && client"
@@ -1301,7 +1550,7 @@ function toggleClientInfo() {
             rows="1"
             v-model="draft"
             enterkeyhint="send"
-            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed"
+            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed || sttBusy"
             :placeholder="llmAllowed ? composerPlaceholder : INSUFFICIENT_FUNDS_MSG"
             @input="resizeComposer(chatInputEl)"
             @keydown.enter.exact.prevent="send"
@@ -1309,12 +1558,34 @@ function toggleClientInfo() {
           <button
             class="composer-send"
             type="button"
-            title="Отправить"
-            aria-label="Отправить"
-            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed"
-            @pointerdown.prevent="send"
+            :class="{
+              'is-mic': composerActionIsMic && !chatSttActive,
+              recording: chatSttActive && sttRecording,
+              busy: chatSttActive && sttBusy
+            }"
+            :title="composerActionIsMic
+              ? (chatSttActive && sttRecording ? 'Стоп и отправить' : chatSttActive && sttBusy ? 'Распознаём…' : 'Голосовой ввод')
+              : 'Отправить'"
+            :aria-label="composerActionIsMic
+              ? (chatSttActive && sttRecording ? 'Остановить и отправить' : 'Записать голос')
+              : 'Отправить'"
+            :disabled="busy || (!!activeSessionId && timerPaused) || therapyDone || !llmAllowed
+              || (sttBusy && sttTarget === 'chat')
+              || (!composerActionIsMic && !composerHasText)
+              || (sttRecording && sttTarget === 'supervisor')"
+            @pointerdown.prevent="onComposerAction"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">send</span>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{
+                chatSttActive && sttBusy
+                  ? 'progress_activity'
+                  : chatSttActive && sttRecording
+                    ? 'stop_circle'
+                    : composerActionIsMic
+                      ? 'mic'
+                      : 'send'
+              }}
+            </span>
           </button>
         </div>
       </section>
@@ -1348,7 +1619,7 @@ function toggleClientInfo() {
             rows="1"
             v-model="supervisorDraft"
             enterkeyhint="send"
-            :disabled="busy || !llmAllowed"
+            :disabled="busy || !llmAllowed || (sttBusy && sttTarget === 'supervisor')"
             :placeholder="llmAllowed ? 'Спросить супервизора…' : INSUFFICIENT_FUNDS_MSG"
             @input="resizeComposer(supervisorInputEl)"
             @keydown.enter.exact.prevent="askSupervisor"
@@ -1356,12 +1627,34 @@ function toggleClientInfo() {
           <button
             class="composer-send"
             type="button"
-            title="Спросить"
-            aria-label="Спросить"
-            :disabled="busy || !llmAllowed"
-            @pointerdown.prevent="askSupervisor"
+            :class="{
+              'is-mic': supervisorActionIsMic && !supervisorSttActive,
+              recording: supervisorSttActive && sttRecording,
+              busy: supervisorSttActive && sttBusy
+            }"
+            :title="supervisorActionIsMic
+              ? (supervisorSttActive && sttRecording ? 'Стоп и отправить' : supervisorSttActive && sttBusy ? 'Распознаём…' : 'Голосовой ввод')
+              : 'Спросить'"
+            :aria-label="supervisorActionIsMic
+              ? (supervisorSttActive && sttRecording ? 'Остановить и отправить' : 'Записать голос')
+              : 'Спросить'"
+            :disabled="busy || !llmAllowed
+              || (sttBusy && sttTarget === 'supervisor')
+              || (!supervisorActionIsMic && !supervisorHasText)
+              || (sttRecording && sttTarget === 'chat')"
+            @pointerdown.prevent="onSupervisorComposerAction"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">send</span>
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{
+                supervisorSttActive && sttBusy
+                  ? 'progress_activity'
+                  : supervisorSttActive && sttRecording
+                    ? 'stop_circle'
+                    : supervisorActionIsMic
+                      ? 'mic'
+                      : 'send'
+              }}
+            </span>
           </button>
         </div>
       </aside>

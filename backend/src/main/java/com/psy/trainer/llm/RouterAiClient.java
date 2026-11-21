@@ -70,12 +70,15 @@ public class RouterAiClient {
         }
         for (JsonNode n : data) {
             JsonNode pricing = n.path("pricing");
+            String modality = n.path("architecture").path("modality").asText("");
             ModelInfo info = new ModelInfo(
                     n.path("id").asText(),
                     n.path("name").asText(n.path("id").asText()),
                     n.path("context_length").isNumber() ? n.path("context_length").asInt() : null,
                     decimalOrNull(pricing.path("prompt")),
-                    decimalOrNull(pricing.path("completion"))
+                    decimalOrNull(pricing.path("completion")),
+                    extractOutputModalities(n),
+                    modality
             );
             out.add(info);
             if (info.id() != null && !info.id().isBlank()) {
@@ -108,6 +111,34 @@ public class RouterAiClient {
             return null;
         }
         return BigDecimal.valueOf(node.asDouble());
+    }
+
+    private static List<String> extractOutputModalities(JsonNode model) {
+        List<String> out = new ArrayList<>();
+        JsonNode arch = model.path("architecture");
+        JsonNode outputs = arch.path("output_modalities");
+        if (outputs.isArray()) {
+            for (JsonNode m : outputs) {
+                if (m.isTextual() && !m.asText().isBlank()) {
+                    out.add(m.asText().trim().toLowerCase());
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            String modality = arch.path("modality").asText("");
+            // e.g. "text->audio" / "text+audio->text"
+            int arrow = modality.indexOf("->");
+            if (arrow >= 0) {
+                String right = modality.substring(arrow + 2).toLowerCase();
+                for (String part : right.split("[+,]")) {
+                    String p = part.trim();
+                    if (!p.isEmpty()) {
+                        out.add(p);
+                    }
+                }
+            }
+        }
+        return List.copyOf(out);
     }
 
     private JsonNode get(String path) {
@@ -157,7 +188,68 @@ public class RouterAiClient {
             String name,
             Integer contextLength,
             BigDecimal promptPricePerToken,
-            BigDecimal completionPricePerToken
+            BigDecimal completionPricePerToken,
+            List<String> outputModalities,
+            String modality
     ) {
+        /** True TTS for {@code /audio/speech}: text→speech (not multimodal chat-audio). */
+        public boolean isSpeechTts() {
+            if (outputModalities != null && outputModalities.stream().anyMatch(m -> "speech".equalsIgnoreCase(m))) {
+                return true;
+            }
+            String mod = modality == null ? "" : modality.toLowerCase();
+            if (mod.endsWith("->speech") || "text->speech".equals(mod)) {
+                return true;
+            }
+            // Fallback when architecture fields are missing from /models payload.
+            String hay = ((id == null ? "" : id) + " " + (name == null ? "" : name)).toLowerCase();
+            if (hay.contains("gpt-audio") || hay.contains("lyria")) {
+                return false;
+            }
+            return hay.contains("tts")
+                    || hay.contains("voice-tts")
+                    || hay.contains("grok-voice")
+                    || hay.contains("mai-voice")
+                    || hay.contains("kokoro")
+                    || hay.contains("orpheus")
+                    || hay.contains("assemblyai-tts")
+                    || hay.contains("text-to-speech");
+        }
+
+        public boolean isEmbedding() {
+            if (outputModalities != null && outputModalities.stream().anyMatch(m ->
+                    "embeddings".equalsIgnoreCase(m) || "embedding".equalsIgnoreCase(m))) {
+                return true;
+            }
+            String mod = modality == null ? "" : modality.toLowerCase();
+            if (mod.contains("->embeddings") || mod.endsWith("embeddings")) {
+                return true;
+            }
+            String hay = ((id == null ? "" : id) + " " + (name == null ? "" : name)).toLowerCase();
+            return hay.contains("embed");
+        }
+
+        /** Dedicated STT for {@code /audio/transcriptions}: audio→transcription. */
+        public boolean isTranscriptionStt() {
+            String mod = modality == null ? "" : modality.toLowerCase();
+            if (mod.equals("audio->transcription") || mod.equals("speech->text") || mod.equals("audio->text")) {
+                return true;
+            }
+            if (outputModalities != null && outputModalities.stream().anyMatch(m ->
+                    "transcription".equalsIgnoreCase(m))) {
+                return true;
+            }
+            String hay = ((id == null ? "" : id) + " " + (name == null ? "" : name)).toLowerCase();
+            if (hay.contains("tts") || hay.contains("voice-tts") || hay.contains("embed")) {
+                return false;
+            }
+            return hay.contains("whisper")
+                    || hay.contains("transcrib")
+                    || hay.contains("-stt")
+                    || hay.contains("stt-")
+                    || hay.contains("grok-stt")
+                    || hay.contains("speech-to-text")
+                    || hay.contains("nova-3");
+        }
     }
 }

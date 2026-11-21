@@ -4,6 +4,8 @@ import com.psy.trainer.service.MeService;
 import com.psy.trainer.web.dto.Dtos;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +30,11 @@ public class MeController {
     @PostMapping("/accept-disclaimer")
     public Dtos.MeResponse acceptDisclaimer() {
         return meService.acceptDisclaimer();
+    }
+
+    @PutMapping("/voice-settings")
+    public Dtos.MeResponse updateVoiceSettings(@RequestBody Dtos.UpdateVoiceSettingsRequest request) {
+        return meService.updateVoiceSettings(request);
     }
 
     @GetMapping("/balance/history")

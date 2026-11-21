@@ -6,8 +6,11 @@ import com.psy.trainer.service.BadRequestException;
 import com.psy.trainer.service.LlmUsageService;
 import com.psy.trainer.service.RuntimeConfigService;
 import com.psy.trainer.service.UserBalanceService;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
@@ -120,6 +123,143 @@ public class LlmClient {
                         ctx.clientId(),
                         ctx.sessionId()
                 ));
+    }
+
+    /**
+     * OpenAI-compatible TTS: {@code POST /audio/speech} → raw audio bytes.
+     * Does not record usage — caller meters by character count.
+     */
+    public byte[] speech(String model, String voice, String input, String responseFormat) {
+        userBalanceService.requireLlmAllowed();
+        ensureApiConfigured();
+        if (model == null || model.isBlank()) {
+            throw new BadRequestException("TTS-модель не задана");
+        }
+        if (input == null || input.isBlank()) {
+            throw new BadRequestException("Пустой текст для озвучки");
+        }
+        String format = responseFormat == null || responseFormat.isBlank() ? "mp3" : responseFormat;
+        String voiceId = voice == null || voice.isBlank() ? "ara" : voice;
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", model);
+        body.put("input", input);
+        body.put("voice", voiceId);
+        body.put("response_format", format);
+        try {
+            byte[] audio = webClient.post()
+                    .uri(uri("/audio/speech"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .headers(h -> h.setBearerAuth(runtimeConfigService.getApiKey()))
+                    .bodyValue(body)
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+            if (audio == null || audio.length == 0) {
+                throw new BadRequestException("Пустой ответ TTS");
+            }
+            return audio;
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            String detail = e.getResponseBodyAsString();
+            if (detail == null || detail.isBlank()) {
+                detail = e.getStatusCode() + " " + e.getStatusText();
+            }
+            // Gemini TTS accepts only pcm — keep PSY on Grok+mp3 by default.
+            if (model.toLowerCase().contains("gemini") && model.toLowerCase().contains("tts")) {
+                throw new BadRequestException(
+                        "Модель " + model + " не совместима с текущим TTS (нужен pcm). "
+                                + "Выберите x-ai/grok-voice-tts-1.0. Детали: " + detail);
+            }
+            throw new BadRequestException("TTS ошибка: " + detail);
+        } catch (Exception e) {
+            throw new BadRequestException("TTS ошибка: " + e.getMessage());
+        }
+    }
+
+    public record TranscriptionResult(String text, Integer promptTokens, Integer completionTokens, Integer totalTokens, BigDecimal costRub) {
+    }
+
+    /**
+     * OpenAI-compatible STT: {@code POST /audio/transcriptions} (multipart).
+     * Does not record usage — caller meters.
+     */
+    public TranscriptionResult transcribe(byte[] audio, String filename, String contentType, String model, String language) {
+        userBalanceService.requireLlmAllowed();
+        ensureApiConfigured();
+        if (model == null || model.isBlank()) {
+            throw new BadRequestException("STT-модель не задана");
+        }
+        if (audio == null || audio.length == 0) {
+            throw new BadRequestException("Пустой аудиофайл");
+        }
+        String name = (filename == null || filename.isBlank()) ? "voice.webm" : filename;
+        MediaType partType;
+        try {
+            partType = contentType == null || contentType.isBlank()
+                    ? MediaType.APPLICATION_OCTET_STREAM
+                    : MediaType.parseMediaType(contentType);
+        } catch (Exception e) {
+            partType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        MediaType finalPartType = partType;
+        builder.part("file", new ByteArrayResource(audio) {
+            @Override
+            public String getFilename() {
+                return name;
+            }
+        }).contentType(finalPartType);
+        builder.part("model", model);
+        if (language != null && !language.isBlank()) {
+            builder.part("language", language);
+        }
+
+        try {
+            JsonNode response = webClient.post()
+                    .uri(uri("/audio/transcriptions"))
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .headers(h -> h.setBearerAuth(runtimeConfigService.getApiKey()))
+                    .body(BodyInserters.fromMultipartData(builder.build()))
+                    .retrieve()
+                    .bodyToMono(JsonNode.class)
+                    .block();
+            if (response == null) {
+                throw new BadRequestException("Пустой ответ STT");
+            }
+            String text = response.path("text").asText("");
+            if (text.isBlank()) {
+                text = response.path("data").path("text").asText("");
+            }
+            if (text.isBlank()) {
+                throw new BadRequestException("STT не вернул текст");
+            }
+            JsonNode usage = response.path("usage");
+            Integer prompt = intOrNull(usage, "prompt_tokens");
+            Integer completion = intOrNull(usage, "completion_tokens");
+            Integer total = intOrNull(usage, "total_tokens");
+            if (total == null && (prompt != null || completion != null)) {
+                total = (prompt == null ? 0 : prompt) + (completion == null ? 0 : completion);
+            }
+            BigDecimal cost = firstDecimal(
+                    usage.path("cost"),
+                    usage.path("total_cost"),
+                    response.path("cost"),
+                    response.path("total_cost")
+            );
+            return new TranscriptionResult(text.trim(), prompt, completion, total, cost);
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            String detail = e.getResponseBodyAsString();
+            if (detail == null || detail.isBlank()) {
+                detail = e.getStatusCode() + " " + e.getStatusText();
+            }
+            throw new BadRequestException("STT ошибка: " + detail);
+        } catch (Exception e) {
+            throw new BadRequestException("STT ошибка: " + e.getMessage());
+        }
     }
 
     public float[] embed(String text) {

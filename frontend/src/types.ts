@@ -24,6 +24,14 @@ export interface Me {
   appBalanceRub?: number | null
   /** Sum of all user balances — admins only */
   usersBalanceTotalRub?: number | null
+  /** Admin made TTS available */
+  ttsAvailable?: boolean
+  /** User preference: cloud TTS of client messages */
+  ttsEnabled?: boolean
+  /** Admin made STT available */
+  sttAvailable?: boolean
+  /** User preference: cloud STT voice input */
+  sttEnabled?: boolean
 }
 
 export interface AdminOverview {
@@ -43,6 +51,10 @@ export interface AdminOverview {
   billingError?: string | null
   activityUrl: string
   docsUrl: string
+  ttsEnabled?: boolean
+  ttsModel?: string | null
+  sttEnabled?: boolean
+  sttModel?: string | null
 }
 
 export interface AdminModelOption {
@@ -53,6 +65,13 @@ export interface AdminModelOption {
   promptPer1mRub?: number | null
   /** ₽ за 1 млн выходных токенов */
   completionPer1mRub?: number | null
+  outputModalities?: string[]
+  /** Suitable for /audio/speech TTS */
+  tts?: boolean
+  /** Embedding / vector models */
+  embedding?: boolean
+  /** Speech-to-text / transcription models */
+  stt?: boolean
 }
 
 export interface PromptSummary {

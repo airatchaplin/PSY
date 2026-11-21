@@ -5,6 +5,7 @@ import AnalysisReport from '../components/AnalysisReport.vue'
 import { difficultyLabel, rubricLabel, tagLabel } from '../labels'
 import { apiErrorMessage, INSUFFICIENT_FUNDS_MSG } from '../api/errors'
 import { llmAllowed, setMeProfile } from '../meProfile'
+import { openHubMenu } from '../hubMenu'
 import { setProgressMobileTab } from '../progressUi'
 import type { Analysis, Progress } from '../types'
 
@@ -29,6 +30,24 @@ const analyzingStatus = computed(() => ANALYZING_STATUSES[analyzingStatusIdx.val
 const selectedAnalysis = computed(() =>
   notebookAnalyses.value.find(a => a.id === selectedAnalysisId.value) || null
 )
+
+const statsHead = {
+  title: 'Статистика',
+  sub: 'Сводка по практике: сколько сеансов вы провели, с какими тонами клиентов работали чаще и где по гештальт-рубрике пока слабее всего.'
+}
+
+const analysesHead = computed(() => {
+  if (selectedAnalysis.value && !busy.value) {
+    return {
+      title: 'Анализ тетради',
+      sub: formatAnalysisWhen(selectedAnalysis.value.createdAt)
+    }
+  }
+  return {
+    title: 'Анализы',
+    sub: 'Сохранённые анализы всей тетради.'
+  }
+})
 
 function formatAnalysisWhen(iso: string) {
   const d = new Date(iso)
@@ -120,66 +139,106 @@ function backToAnalyses() {
       class="progress-recent progress-analyses"
       :class="{ 'progress-analyses--detail': selectedAnalysis && !busy }"
     >
-      <template v-if="selectedAnalysis && !busy">
-        <div class="progress-analysis-head">
+      <header class="page-head compact hub-sticky-head progress-hub-head">
+        <div class="hub-sticky-head-row">
           <button
-            class="icon-btn secondary panel-back-clients"
             type="button"
-            title="Ко всем анализам"
-            aria-label="Ко всем анализам"
+            class="hub-section-menu-btn"
+            aria-haspopup="menu"
+            aria-label="Разделы прогресса"
+            title="Разделы"
+            @click="openHubMenu('progress')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+          </button>
+          <div class="hub-sticky-head-copy">
+            <div class="section-label">Прогресс</div>
+            <h2 class="page-title">{{ analysesHead.title }}</h2>
+            <p class="page-sub">{{ analysesHead.sub }}</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="progress-analyses-body">
+        <template v-if="selectedAnalysis && !busy">
+          <div class="progress-analysis-head progress-analysis-head-desktop">
+            <button
+              class="icon-btn secondary panel-back-clients"
+              type="button"
+              title="Ко всем анализам"
+              aria-label="Ко всем анализам"
+              @click="backToAnalyses"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            </button>
+            <div class="section-label left-scroll-label progress-analysis-title">
+              Анализ тетради
+              <span>{{ formatAnalysisWhen(selectedAnalysis.createdAt) }}</span>
+            </div>
+          </div>
+          <button
+            class="toolbar-btn secondary progress-analysis-back-mobile"
+            type="button"
             @click="backToAnalyses"
           >
             <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Ко всем анализам
           </button>
-          <div class="section-label left-scroll-label progress-analysis-title">
-            Анализ тетради
-            <span>{{ formatAnalysisWhen(selectedAnalysis.createdAt) }}</span>
-          </div>
-        </div>
-        <div class="progress-analysis-detail analysis-reveal">
-          <AnalysisReport :analysis="selectedAnalysis" />
-        </div>
-      </template>
-      <template v-else>
-        <div class="section-label left-scroll-label">Анализы тетради</div>
-        <p v-if="loading" class="empty-hint">Загрузка…</p>
-        <p v-else-if="!notebookAnalyses.length" class="empty-hint">
-          Пока нет сохранённых анализов — создайте на странице статистики.
-        </p>
-        <template v-else>
-          <div class="segmented-list progress-analysis-picker" role="listbox" aria-label="Анализы тетради">
-            <button
-              v-for="a in notebookAnalyses"
-              :key="a.id"
-              type="button"
-              role="option"
-              class="list-item progress-analysis-pick"
-              :aria-selected="false"
-              @click="selectAnalysis(a.id)"
-            >
-              <div class="list-item-top">
-                <div class="list-item-title">
-                  <strong>{{ formatAnalysisWhen(a.createdAt) }}</strong>
-                </div>
-              </div>
-            </button>
+          <div class="progress-analysis-detail analysis-reveal">
+            <AnalysisReport :analysis="selectedAnalysis" />
           </div>
         </template>
-      </template>
+        <template v-else>
+          <div class="section-label left-scroll-label progress-analyses-desktop-label">Анализы тетради</div>
+          <p v-if="loading" class="empty-hint">Загрузка…</p>
+          <p v-else-if="!notebookAnalyses.length" class="empty-hint">
+            Пока нет сохранённых анализов — создайте на странице статистики.
+          </p>
+          <template v-else>
+            <div class="segmented-list progress-analysis-picker" role="listbox" aria-label="Анализы тетради">
+              <button
+                v-for="a in notebookAnalyses"
+                :key="a.id"
+                type="button"
+                role="option"
+                class="list-item progress-analysis-pick"
+                :aria-selected="false"
+                @click="selectAnalysis(a.id)"
+              >
+                <div class="list-item-top">
+                  <div class="list-item-title">
+                    <strong>{{ formatAnalysisWhen(a.createdAt) }}</strong>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </template>
+        </template>
+      </div>
     </div>
   </Teleport>
 
-  <div class="page-scroll progress-stats">
-    <div class="row page-head-row">
-      <div class="page-head compact">
-        <h2 class="section-label left-scroll-label">Прогресс</h2>
-        <p class="page-sub">
-          Сводка по практике: сколько сеансов вы провели, с какими тонами клиентов
-          работали чаще и где по гештальт-рубрике пока слабее всего.
-        </p>
+  <div class="progress-stats-page">
+    <header class="page-head compact hub-sticky-head progress-hub-head">
+      <div class="hub-sticky-head-row">
+        <button
+          type="button"
+          class="hub-section-menu-btn"
+          aria-haspopup="menu"
+          aria-label="Разделы прогресса"
+          title="Разделы"
+          @click="openHubMenu('progress')"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">more_vert</span>
+        </button>
+        <div class="hub-sticky-head-copy">
+          <div class="section-label">Прогресс</div>
+          <h2 class="page-title">{{ statsHead.title }}</h2>
+          <p class="page-sub">{{ statsHead.sub }}</p>
+        </div>
       </div>
       <button
-        class="toolbar-btn"
+        class="toolbar-btn progress-analyze-btn"
         type="button"
         :class="{ analyzing: busy }"
         :disabled="busy || !llmAllowed"
@@ -193,57 +252,60 @@ function backToAnalyses() {
         >{{ busy ? 'progress_activity' : 'analytics' }}</span>
         {{ busy ? 'Анализируем…' : 'Анализ тетради' }}
       </button>
-    </div>
+    </header>
 
-    <div v-if="busy" class="analysis-generating panel inset" aria-live="polite" aria-busy="true">
-      <div class="analysis-generating-orb" aria-hidden="true">
-        <span class="material-symbols-outlined analysis-generating-icon">auto_awesome</span>
-        <span class="analysis-generating-ring"></span>
-        <span class="analysis-generating-ring delay"></span>
-      </div>
-      <p class="analysis-generating-title">ИИ готовит анализ</p>
-      <p class="analysis-generating-status" :key="analyzingStatus">{{ analyzingStatus }}</p>
-    </div>
-
-    <p v-if="loading" class="empty-hint">Загрузка…</p>
-    <p v-else-if="error" class="error-text">{{ error }}</p>
-    <template v-else-if="progress">
-      <div class="stats">
-        <div class="stat"><span class="muted">Клиенты</span><strong>{{ progress.clientsTotal }}</strong></div>
-        <div class="stat"><span class="muted">Сеансы</span><strong>{{ progress.sessionsTotal }}</strong></div>
-        <div class="stat"><span class="muted">Завершено</span><strong>{{ progress.sessionsClosed }}</strong></div>
-        <div class="stat"><span class="muted">Минуты</span><strong>{{ progress.practiceMinutes }}</strong></div>
-      </div>
-
-      <h3 class="section-block">По поведениям / тонам</h3>
-      <p v-if="!progress.byBehaviorTag.length" class="empty-hint">Пока нет данных.</p>
-      <div v-for="t in progress.byBehaviorTag" :key="t.tag" class="list-item plain">
-        <strong>{{ t.labelRu || tagLabel(t.tag) }}</strong>
-        <div class="muted">
-          сеансов: {{ t.sessions }}, минут: {{ t.minutes }}
-          <span v-if="t.avgRubric != null">, средний балл: {{ t.avgRubric.toFixed(2) }}</span>
+    <div class="page-scroll progress-stats">
+      <div v-if="busy" class="analysis-generating panel inset" aria-live="polite" aria-busy="true">
+        <div class="analysis-generating-orb" aria-hidden="true">
+          <span class="material-symbols-outlined analysis-generating-icon">auto_awesome</span>
+          <span class="analysis-generating-ring"></span>
+          <span class="analysis-generating-ring delay"></span>
         </div>
+        <p class="analysis-generating-title">ИИ готовит анализ</p>
+        <p class="analysis-generating-status" :key="analyzingStatus">{{ analyzingStatus }}</p>
       </div>
 
-      <h3 class="section-block">По сложности</h3>
-      <div class="stats">
-        <div class="stat" v-for="d in progress.byDifficulty" :key="d.difficulty">
-          <span class="muted">{{ difficultyLabel(d.difficulty, d.labelRu) }}</span>
-          <strong>{{ d.clients }}</strong>
-          <div class="muted">сеансов: {{ d.sessions }}</div>
+      <p v-if="loading" class="empty-hint">Загрузка…</p>
+      <p v-else-if="error" class="error-text">{{ error }}</p>
+      <template v-else-if="progress">
+        <div class="stats">
+          <div class="stat"><span class="muted">Клиенты</span><strong>{{ progress.clientsTotal }}</strong></div>
+          <div class="stat"><span class="muted">Сеансы</span><strong>{{ progress.sessionsTotal }}</strong></div>
+          <div class="stat"><span class="muted">Завершено</span><strong>{{ progress.sessionsClosed }}</strong></div>
+          <div class="stat"><span class="muted">Минуты</span><strong>{{ progress.practiceMinutes }}</strong></div>
         </div>
-      </div>
 
-      <h3 class="section-block">Слабые зоны</h3>
-      <div class="tags">
-        <span class="tag" v-for="w in progress.weakZones" :key="w">{{ rubricLabel(w) }}</span>
-        <span v-if="!progress.weakZones.length" class="empty-hint">Появятся после анализов сессий.</span>
-      </div>
+        <h3 class="section-block">По поведениям / тонам</h3>
+        <p v-if="!progress.byBehaviorTag.length" class="empty-hint">Пока нет данных.</p>
+        <div v-for="t in progress.byBehaviorTag" :key="t.tag" class="list-item plain">
+          <strong>{{ t.labelRu || tagLabel(t.tag) }}</strong>
+          <div class="muted">
+            сеансов: {{ t.sessions }}, минут: {{ t.minutes }}
+            <span v-if="t.avgRubric != null">, средний балл: {{ t.avgRubric.toFixed(2) }}</span>
+          </div>
+        </div>
 
-      <h3 class="section-block">Рубрика (средние)</h3>
-      <div v-for="r in progress.rubricAverages" :key="r.dimension" class="muted">
-        {{ rubricLabel(r.dimension) }}: {{ r.average.toFixed(2) }}
-      </div>
-    </template>
+        <h3 class="section-block">По сложности</h3>
+        <div class="stats">
+          <div class="stat" v-for="d in progress.byDifficulty" :key="d.difficulty">
+            <span class="muted">{{ difficultyLabel(d.difficulty, d.labelRu) }}</span>
+            <strong>{{ d.clients }}</strong>
+            <div class="muted">сеансов: {{ d.sessions }}</div>
+          </div>
+        </div>
+
+        <h3 class="section-block">Слабые зоны</h3>
+        <div class="tags">
+          <span class="tag" v-for="w in progress.weakZones" :key="w">{{ rubricLabel(w) }}</span>
+          <span v-if="!progress.weakZones.length" class="empty-hint">Появятся после анализов сессий.</span>
+        </div>
+
+        <h3 class="section-block">Рубрика (средние)</h3>
+        <div v-for="r in progress.rubricAverages" :key="r.dimension" class="muted">
+          {{ rubricLabel(r.dimension) }}: {{ r.average.toFixed(2) }}
+        </div>
+      </template>
+    </div>
   </div>
+
 </template>

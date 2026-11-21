@@ -30,7 +30,9 @@ export const GENERAL_PURPOSES = new Set([
   'supervisor',
   'progress',
   'case',
-  'embed'
+  'embed',
+  'tts',
+  'stt'
 ])
 
 const GENERAL_ORDER = [
@@ -40,7 +42,9 @@ const GENERAL_ORDER = [
   'supervisor',
   'progress',
   'case',
-  'embed'
+  'embed',
+  'tts',
+  'stt'
 ] as const
 
 function normalizePurpose(purpose: string) {
@@ -53,11 +57,15 @@ function isExpandable(source: string) {
     && source !== 'chat'
     && source !== 'supervisor'
     && source !== 'progress'
+    && source !== 'tts'
+    && source !== 'stt'
 }
 
 export function generalItemUnit(source: string) {
   if (source === 'case') return 'кейс.'
   if (source === 'analysis_global') return 'анализ.'
+  if (source === 'tts') return 'озвуч.'
+  if (source === 'stt') return 'голос.'
   return 'сеанс.'
 }
 
